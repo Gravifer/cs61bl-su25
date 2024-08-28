@@ -8,7 +8,7 @@ import java.util.Formatter;
  */
 public class Board {
     /** Current contents of the board. */
-    private Tile[][] _values;
+    private final Tile[][] _values;
     /** Side that the board currently views as north. */
     private Side _viewPerspective;
 

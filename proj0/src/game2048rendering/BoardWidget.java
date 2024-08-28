@@ -1,5 +1,6 @@
 package game2048rendering;
 
+import game2048logic.Model;
 import ucb.gui2.Pad;
 
 import java.util.ArrayList;

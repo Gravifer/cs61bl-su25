@@ -1,9 +1,9 @@
 package game2048rendering;
 
+import game2048logic.Model;
+import static game2048rendering.Side.*;
 import java.awt.event.KeyEvent;
 import java.util.Random;
-
-import static game2048rendering.Side.*;
 
 /** The input/output and GUI controller for play of a game of 2048.
  *  @author P. N. Hilfinger. */
@@ -69,7 +69,7 @@ class Game {
                         }
 
                         String stateBefore = _model.toString();
-                        _model.tilt(keyToSide(cmnd));
+                        _model.tiltWrapper(keyToSide(cmnd));
                         String stateAfter = _model.toString();
 
                         if (!stateBefore.equals(stateAfter)) {
