@@ -1,0 +1,3 @@
+[submodule "lecture-code-su25"]
+	path = lecture-code-su25
+	url = https://github.com/cs61bl/lecture-code-su25
