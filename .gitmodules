@@ -7,3 +7,6 @@
 [submodule "lecture-code-sp25"]
 	path = lecture-code-sp25
 	url = https://github.com/Berkeley-CS61B/lectureCode-sp25
+[submodule "library-su25"]
+	path = library-su25
+	url = https://github.com/cs61bl/library-su25
