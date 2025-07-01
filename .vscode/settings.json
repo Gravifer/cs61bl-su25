@@ -57,4 +57,9 @@
         "**/package-lock.json": false
     },
     "explorerExclude.backup": {},
+    "conventionalCommits.scopes": [
+        "lab",
+        "lecture",
+        "proj"
+    ],
 }
