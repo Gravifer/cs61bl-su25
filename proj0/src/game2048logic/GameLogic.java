@@ -1,6 +1,8 @@
 package game2048logic;
 
 import game2048rendering.Side;
+import org.jetbrains.annotations.NotNull;
+
 import static game2048logic.MatrixUtils.rotateLeft;
 import static game2048logic.MatrixUtils.rotateRight;
 
@@ -46,8 +48,13 @@ public class GameLogic {
      * @param c         the column to tilt up.
      */
     public static void tiltColumn(int[][] board, int c) {
-        // TODO: fill this in in task 5
-        return;
+        // DONE: fill this in (task 5)
+        int minR = 0;
+        for (int r = 1; r < 4; r++) {
+            if (board[r][c] != 0) {
+                minR = moveTileUpAsFarAsPossible(board, r, c, minR);
+            }
+        }
     }
 
     /**
@@ -56,8 +63,10 @@ public class GameLogic {
      * @param board     the current state of the board.
      */
     public static void tiltUp(int[][] board) {
-        // TODO: fill this in in task 6
-        return;
+        // DONE: fill this in (task 6)
+        for (int c = 0; c < 4; c++) {
+            tiltColumn(board, c);
+        }
     }
 
     /**
@@ -70,13 +79,21 @@ public class GameLogic {
     public static void tilt(int[][] board, Side side) {
         // TODO: fill this in in task 7
         if (side == game2048rendering.Side.NORTH) {
-            return;
+            tiltUp(board);
         } else if (side == game2048rendering.Side.EAST) {
-            return;
+            rotateLeft(board);
+            tiltUp(board);
+            rotateRight(board);
         } else if (side == game2048rendering.Side.SOUTH) {
-            return;
+            rotateLeft(board);
+            rotateLeft(board);
+            tiltUp(board);
+            rotateLeft(board);
+            rotateLeft(board);
         } else if (side == game2048rendering.Side.WEST) {
-            return;
+            rotateRight(board);
+            tiltUp(board);
+            rotateLeft(board);
         } else {
             System.out.println("Invalid side specified");
         }
