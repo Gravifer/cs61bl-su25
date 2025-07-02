@@ -63,4 +63,13 @@
         "proj",
         "skeleton"
     ],
+    "java.project.sourcePaths": [
+        "lab*/src",
+        "lab*/tests",
+        "proj*/src",
+        "proj*/tests"
+    ],
+    "java.project.referencedLibraries": [
+        "library-su25/*"
+    ],
 }
