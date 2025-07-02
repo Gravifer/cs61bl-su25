@@ -50,7 +50,7 @@ public class GameLogic {
     public static void tiltColumn(int[][] board, int c) {
         // DONE: fill this in (task 5)
         int minR = 0;
-        for (int r = 1; r < 4; r++) {
+        for (int r = 1; r < board.length; r++) {
             if (board[r][c] != 0) {
                 minR = moveTileUpAsFarAsPossible(board, r, c, minR);
             }
@@ -64,7 +64,7 @@ public class GameLogic {
      */
     public static void tiltUp(int[][] board) {
         // DONE: fill this in (task 6)
-        for (int c = 0; c < 4; c++) {
+        for (int c = 0; c < board.length; c++) {
             tiltColumn(board, c);
         }
     }
