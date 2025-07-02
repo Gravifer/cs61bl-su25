@@ -19,27 +19,23 @@ public class GameLogic {
      *              if no merge occurs, then return minR.
      */
     public static int moveTileUpAsFarAsPossible(int[][] board, int r, int c, int minR) {
-        // DONE: Fill this in (tasks 2, 3, 4)
-        if (board[r][c] == 0) { // empty tile passed in
+        if (board[r][c] == 0) {
             return -1;
         }
-        if (r <= minR) { // task 4: If the tile reaches the wall / constrained by minR, we can't move it.
+        if (r <= minR) {
             return minR;
         }
-        if (board[r - 1][c] != 0 && board[r - 1][c] != board[r][c]) {
-            return minR;
-        } else if (board[r - 1][c] == 0) { // task 2: move the tile up (no merging)
-            board[r - 1][c]  = board[r][c];
+        if (board[r - 1][c] == 0) {
+            board[r - 1][c] = board[r][c];
             board[r][c] = 0;
-        } else { // task 3: merge the tile with the tile above it if possible
+            return moveTileUpAsFarAsPossible(board, r - 1, c, minR);
+        } else if (board[r - 1][c] == board[r][c]) {
             board[r - 1][c] += board[r][c];
             board[r][c] = 0;
             return r;
+        } else {
+            return minR;
         }
-        // move further up if possible
-        return moveTileUpAsFarAsPossible(board, r - 1, c, minR);
-
-        // return 0;
     }
 
     /**
