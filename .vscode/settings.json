@@ -60,6 +60,7 @@
     "conventionalCommits.scopes": [
         "lab",
         "lecture",
-        "proj"
+        "proj",
+        "skeleton"
     ],
 }
