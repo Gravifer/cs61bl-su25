@@ -15,12 +15,12 @@ public class GameLogic {
      * @param board the current state of the board
      * @param r     the row number of the tile to move up
      * @param c -   the column number of the tile to move up
-     * @param minR  the minimum row number that the tile can land in, e.g.
+     * @param minR  the minimum row number that the tile can land in; e.g.,
      *              if minR is 2, the moving tile should move no higher than row 2.
      * @return      if there is a merge, returns the 1 + the row number where the merge occurred.
      *              if no merge occurs, then return minR.
      */
-    public static int moveTileUpAsFarAsPossible(int[][] board, int r, int c, int minR) {
+    public static int moveTileUpAsFarAsPossible(int[]@NotNull[] board, int r, int c, int minR) {
         if (board[r][c] == 0) {
             return -1;
         }
@@ -47,7 +47,7 @@ public class GameLogic {
      * @param board     the current state of the board
      * @param c         the column to tilt up.
      */
-    public static void tiltColumn(int[][] board, int c) {
+    public static void tiltColumn(int[]@NotNull[] board, int c) {
         // DONE: fill this in (task 5)
         int minR = 0;
         for (int r = 1; r < board.length; r++) {
@@ -62,7 +62,7 @@ public class GameLogic {
      *
      * @param board     the current state of the board.
      */
-    public static void tiltUp(int[][] board) {
+    public static void tiltUp(int[]@NotNull[] board) {
         // DONE: fill this in (task 6)
         for (int c = 0; c < board.length; c++) {
             tiltColumn(board, c);
@@ -76,8 +76,8 @@ public class GameLogic {
      * @param board the current state of the board
      * @param side  the direction to tilt
      */
-    public static void tilt(int[][] board, Side side) {
-        // TODO: fill this in in task 7
+    public static void tilt(int[]@NotNull[] board, Side side) {
+        // DONE: fill this in (task 7)
         if (side == game2048rendering.Side.NORTH) {
             tiltUp(board);
         } else if (side == game2048rendering.Side.EAST) {
