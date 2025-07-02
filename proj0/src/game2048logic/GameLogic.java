@@ -20,22 +20,27 @@ public class GameLogic {
      */
     public static int moveTileUpAsFarAsPossible(int[][] board, int r, int c, int minR) {
         // TODO: Fill this in in tasks 2, 3, 4
-        // task 2: move the tile up (no merging)
-        if (board[r][c] == 0) { // If the tile is empty, we can't move it.
+        if (board[r][c] == 0) { // empty tile passed in
             return -1;
         }
-        if (r == 0 || board[r - 1][c] != 0) { // If the tile above is not empty (tile or wall), we can't move it.
-            return 0;
+        if (r == 0) { // If the tile reaches the wall, we can't move it.
+            return minR;
         }
-        // Move the tile up.
-        board[r - 1][c] = board[r][c];
-        board[r][c] = 0;
+        if (board[r - 1][c] != 0 && board[r - 1][c] != board[r][c]) {
+            return minR;
+        } else if (board[r - 1][c] == 0) { // task 2: move the tile up (no merging)
+            board[r - 1][c]  = board[r][c];
+            board[r][c] = 0;
+        } else { // task 3: merge the tile with the tile above it if possible
+            board[r - 1][c] += board[r][c];
+            board[r][c] = 0;
+            return r;
+        }
         // move further up if possible
         return moveTileUpAsFarAsPossible(board, r - 1, c, minR);
 
-        // task 3: merge the tile with the tile above it if possible
         // task 4: merge the tile with the tile above it, if possible, and then move it up as far as possible
-        return 0;
+        // return 0;
     }
 
     /**
