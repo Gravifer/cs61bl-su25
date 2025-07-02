@@ -2,11 +2,11 @@ public class TriangleDrawer {
     public static void drawTriangle() {
         drawTriangle(5);
     }
-    public static void drawTriangle(int SIZE) {  // while version
+    public static void drawTriangle(int size) {  // while version
         int i = 1;
-        while (i <= SIZE) {
+        while (i <= size) {
             // int j = 1;
-            // while (j <= SIZE - i) {
+            // while (j <= size - i) {
             //     System.out.print(" ");
             //     j++;
             // }

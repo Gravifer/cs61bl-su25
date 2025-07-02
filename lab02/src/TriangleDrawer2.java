@@ -2,9 +2,9 @@ public class TriangleDrawer2 {
     public static void drawTriangle() {
         drawTriangle(5);
     }
-    public static void drawTriangle(int SIZE) { // for version
-        for (int i = 1; i <= SIZE; i++) {
-            // for (int j = 1; j <= SIZE - i; j++) {
+    public static void drawTriangle(int size) { // for version
+        for (int i = 1; i <= size; i++) {
+            // for (int j = 1; j <= size - i; j++) {
             //     System.out.print(" ");
             // }
             // for (int k = 1; k <= (2 * i - 1); k++) {
