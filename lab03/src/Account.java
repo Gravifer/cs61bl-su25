@@ -6,14 +6,21 @@ public class Account {
 
     private int balance;
 
+    private Account parentAccount;
+
     /** Initialize an account with the given balance. */
     public Account(int balance) {
         this.balance = balance;
+        this.parentAccount = null;  // * spec
+    }
+    public Account(int balance, Account parentAccount) {
+        this.balance = balance;
+        this.parentAccount = parentAccount;
     }
 
     /** Returns the balance for the current account. */
     public int getBalance() {
-        return balance;
+        return this.balance;
     }
 
     /** Deposits amount into the current account. */
@@ -21,7 +28,7 @@ public class Account {
         if (amount < 0) {
             System.out.println("Cannot deposit negative amount.");
         } else {
-            balance += amount;
+            this.balance += amount;
         }
     }
 
@@ -30,22 +37,54 @@ public class Account {
      * would leave a negative balance, print an error message and leave the
      * balance unchanged.
      */
-    public void withdraw(int amount) {
-        // TODO
+    public boolean withdraw(int amount) {
+        // DONE
         if (amount < 0) {
             System.out.println("Cannot withdraw negative amount.");
-        } else if (balance < amount) {
-            System.out.println("Insufficient funds");
-        } else {
-            balance -= amount;
+            return false;
         }
+        if (this.balance >= amount) {
+            this.balance -= amount;
+            return true;
+        }
+        if (this.canProtectOverdraft(amount)) {
+            System.out.println("Overdraft protected");
+            this.parentAccount.withdraw(amount - this.balance);
+            this.balance = 0;
+            return true;
+        }
+        System.out.println("Insufficient funds");
+        return false;
+    }
+
+    private boolean canProtectOverdraft(int amount) {
+        if (this.parentAccount != null) {
+            int parentBalance = this.parentAccount.getBalance();
+            if (parentBalance >= amount) {
+                return true;
+            } else {
+                System.out.println("Parent account has insufficient funds for overdraft.");
+                return this.parentAccount.canProtectOverdraft(amount - parentBalance);
+            }
+        } else {
+            System.out.println("No parent account to protect overdraft.");
+        }
+        return false;
     }
 
     /**
-     * Merge account other into this account by removing all money from other
+     * Merge the account other into this account by removing all money from other
      * and depositing it into this account.
      */
-    public void merge(Account other) {
-        // TODO
+    public boolean merge(Account other) {
+        // DONE
+        int amount = other.getBalance();
+        if (other.withdraw(amount)) {
+            this.deposit(amount);
+            return true;
+        } else {
+            System.out.println("Cannot merge accounts with insufficient funds.");
+        }
+        return false;
     }
 }
