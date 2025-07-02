@@ -20,6 +20,21 @@ public class GameLogic {
      */
     public static int moveTileUpAsFarAsPossible(int[][] board, int r, int c, int minR) {
         // TODO: Fill this in in tasks 2, 3, 4
+        // task 2: move the tile up (no merging)
+        if (board[r][c] == 0) { // If the tile is empty, we can't move it.
+            return -1;
+        }
+        if (r == 0 || board[r - 1][c] != 0) { // If the tile above is not empty (tile or wall), we can't move it.
+            return 0;
+        }
+        // Move the tile up.
+        board[r - 1][c] = board[r][c];
+        board[r][c] = 0;
+        // move further up if possible
+        return moveTileUpAsFarAsPossible(board, r - 1, c, minR);
+
+        // task 3: merge the tile with the tile above it if possible
+        // task 4: merge the tile with the tile above it, if possible, and then move it up as far as possible
         return 0;
     }
 
@@ -54,13 +69,13 @@ public class GameLogic {
      */
     public static void tilt(int[][] board, Side side) {
         // TODO: fill this in in task 7
-        if (side == Side.NORTH) {
+        if (side == game2048rendering.Side.NORTH) {
             return;
-        } else if (side == Side.EAST) {
+        } else if (side == game2048rendering.Side.EAST) {
             return;
-        } else if (side == Side.SOUTH) {
+        } else if (side == game2048rendering.Side.SOUTH) {
             return;
-        } else if (side == Side.WEST) {
+        } else if (side == game2048rendering.Side.WEST) {
             return;
         } else {
             System.out.println("Invalid side specified");
