@@ -1,19 +1,21 @@
 /**
- * This class represents a bank account whose current balance is a nonnegative
+ * This class represents a bank account whose current balance is a non-negative
  * amount in US dollars.
  */
 public class Account {
 
     private int balance;
 
-    private Account parentAccount;
+    private final Account parentAccount;
 
     /** Initialize an account with the given balance. */
     public Account(int balance) {
-        this.balance = balance;
-        this.parentAccount = null;  // * spec
+        this(balance, null);  // * null per spec
     }
     public Account(int balance, Account parentAccount) {
+        if (balance < 0) {
+            throw new IllegalArgumentException("Cannot initialize account with negative balance.");
+        }
         this.balance = balance;
         this.parentAccount = parentAccount;
     }
@@ -24,20 +26,22 @@ public class Account {
     }
 
     /** Deposits amount into the current account. */
-    public void deposit(int amount) {
+    public boolean deposit(int amount) {
         if (amount < 0) {
             System.out.println("Cannot deposit negative amount.");
+            return false;
         } else {
             this.balance += amount;
+            return true;
         }
     }
 
     /**
-     * Subtract amount from the account if possible. If subtracting amount
-     * would leave a negative balance, print an error message and leave the
+     * Subtract amount from the account if possible. If the subtracting amount
+     * leaves a negative balance, print an error message and leave the
      * balance unchanged.
      */
-    public boolean withdraw(int amount) {
+    public synchronized boolean withdraw(int amount) {
         // DONE
         if (amount < 0) {
             System.out.println("Cannot withdraw negative amount.");
@@ -76,8 +80,11 @@ public class Account {
      * Merge the account other into this account by removing all money from other
      * and depositing it into this account.
      */
-    public boolean merge(Account other) {
+    public synchronized boolean merge(Account other) {
         // DONE
+        if (this == other) {
+            return true;
+        }
         int amount = other.getBalance();
         if (other.withdraw(amount)) {
             this.deposit(amount);
