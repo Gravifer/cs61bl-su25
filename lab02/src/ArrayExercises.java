@@ -1,11 +1,11 @@
-import java.util.ArrayList;
-import java.util.List;
+//import java.util.ArrayList;
+//import java.util.List;
 
 public class ArrayExercises {
 
     /** Returns an array [1, 2, 3, 4, 5, 6] */
     public static int[] makeDice() {
-        int[] values = new int[] { 1, 2, 3, 4, 5, 6 };
+        int[] values = new int[] {1, 2, 3, 4, 5, 6};
         return values;
     }
 
