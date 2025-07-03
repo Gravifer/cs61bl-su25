@@ -136,7 +136,11 @@ public class IntList {
      * @param value, the int to be added.
      */
     public void add(int value) {
-        // TODO: YOUR CODE HERE
+        IntList current = this;
+        while (current.next != null) {
+            current = current.next;
+        }
+        current.next = new IntList(value);
     }
 
     /**
