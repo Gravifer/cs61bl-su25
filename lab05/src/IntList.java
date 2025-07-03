@@ -80,9 +80,9 @@ public class IntList {
      * @return The String representation of the list.
      */
     public String toString() {
-        String repr = String.valueOf(this.item);
+        String repr = String.valueOf(this.item); // less future refactoring compared to Integer.toString(this.item); "" + this.item smells bad
         if (this.next != null) {
-            repr += " " + this.next.toString();
+            repr += " " + this.next; // toString() type-inferred
         }
         return repr;
     }
@@ -106,8 +106,10 @@ public class IntList {
             return false;
         }
         if (obj instanceof IntList otherList) {
-            // TODO: your code here
-
+            return this.item == otherList.item
+                    && (this.next == null && otherList.next == null
+                        || (this.next != null && otherList.next != null
+                            && this.next.equals(otherList.next)));
         }
         return false;
     }
