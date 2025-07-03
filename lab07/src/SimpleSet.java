@@ -6,4 +6,5 @@
  */
 public interface SimpleSet extends SimpleCollection {
     // Do nothing.
+    // Learn about autoboxing https://cs61bl.org/su25/labs/lab07/#aside-autoboxing-and-generics
 }
