@@ -149,8 +149,18 @@ public class IntList {
      * @return smallest element in the list
      */
     public int smallest() {
-        // TODO: YOUR CODE HERE
-        return -1;
+        if (this == null) {
+            throw new IllegalArgumentException("List is empty");
+        }
+        int smallest = this.item;
+        IntList current = this.next;
+        while (current != null) {
+            if (current.item < smallest) {
+                smallest = current.item;
+            }
+            current = current.next;
+        }
+        return smallest;
     }
 
     /**
