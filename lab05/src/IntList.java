@@ -47,8 +47,30 @@ public class IntList {
      * @return The element at [position]
      */
     public int get(int position) {
-        // TODO: YOUR CODE HERE
-        return -1;
+        if (position < 0) {
+            throw new IllegalArgumentException("Index cannot be negative");
+        }
+        // * recursive version
+        if (position == 0) {
+            return this.item;
+        }
+        if (this.next == null) {
+            throw new IllegalArgumentException("Index out of bounds");
+        }
+        return this.next.get(position - 1);
+
+        // // * iterative version
+        // IntList current = this;
+        // for (int i = 0; i < position; i++) {
+        //     if (current == null) {
+        //         throw new IllegalArgumentException("Index out of bounds");
+        //     }
+        //     current = current.next;
+        // }
+        // if (current == null) {
+        //     throw new IllegalArgumentException("Index out of bounds");
+        // }
+        // return current.item;
     }
 
     /**
