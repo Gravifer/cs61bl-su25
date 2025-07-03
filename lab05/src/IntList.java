@@ -232,8 +232,28 @@ public class IntList {
      * @return new list with A followed by B.
      */
     public static IntList catenate(IntList A, IntList B) {
-        // TODO: YOUR CODE HERE
-        return null;
+        if (A == null) {
+            return B; // If A is null, return B
+        }
+        IntList head = new IntList(A.item); // Create a new head for the result
+        IntList current = head; // Pointer to build the new list
+        A = A.next; // Move to the next element in A
+
+        // Copy elements from A to the new list
+        while (A != null) {
+            current.next = new IntList(A.item);
+            current = current.next;
+            A = A.next;
+        }
+
+        // Now append elements from B
+        while (B != null) {
+            current.next = new IntList(B.item);
+            current = current.next;
+            B = B.next;
+        }
+
+        return head; // Return the new list
     }
 
     /**
@@ -245,7 +265,19 @@ public class IntList {
      * @return new list with A followed by B.
      */
     public static IntList dcatenate(IntList A, IntList B) {
-        // TODO: YOUR CODE HERE
-        return null;
+        if (A == null) {
+            return B; // If A is null, return B
+        }
+        IntList current = A; // Pointer to traverse A
+
+        // Traverse to the end of A
+        while (current.next != null) {
+            current = current.next;
+        }
+
+        // Now append B to the end of A
+        current.next = B;
+
+        return A; // Return the modified list A
     }
 }

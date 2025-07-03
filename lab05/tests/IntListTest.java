@@ -153,11 +153,38 @@ public class IntListTest {
 
     @Test
     public void testCatenate() {
-        // TODO: Add tests
+        IntList a = IntList.of(1, 2, 3);
+        IntList b = IntList.of(4, 5, 6);
+        IntList c = IntList.catenate(a, b);
+        assertWithMessage("Catenated list should be (1, 2, 3, 4, 5, 6)").that(c).isEqualTo(IntList.of(1, 2, 3, 4, 5, 6));
+
+        IntList empty = IntList.of();
+        IntList d = IntList.catenate(empty, b);
+        assertWithMessage("Catenating empty with (4, 5, 6) should yield (4, 5, 6)").that(d).isEqualTo(IntList.of(4, 5, 6));
+
+        IntList e = IntList.catenate(a, empty);
+        assertWithMessage("Catenating (1, 2, 3) with empty should yield (1, 2, 3)").that(e).isEqualTo(IntList.of(1, 2, 3));
+
+        IntList f = IntList.catenate(empty, empty);
+        assertWithMessage("Catenating two empties should yield empty").that(f).isNull();
     }
 
     @Test
     public void testDCatenate() {
-        // TODO: Add test
+        IntList empty = IntList.of();
+        IntList a = IntList.of(1, 2, 3);
+        IntList b = IntList.of(4, 5, 6);
+        IntList c = IntList.dcatenate(a, b);
+        assertWithMessage("dcatenated list should be (1, 2, 3, 4, 5, 6)").that(c).isEqualTo(IntList.of(1, 2, 3, 4, 5, 6));
+        assertWithMessage("the first argument of dcatenate should be mutated").that(a).isEqualTo(IntList.of(1, 2, 3, 4, 5, 6));
+        a = IntList.of(1, 2, 3); // restore a to original state
+
+        IntList.dcatenate(a, empty);
+        assertWithMessage("dcatenating (1, 2, 3) with empty should yield (1, 2, 3)").that(a).isEqualTo(IntList.of(1, 2, 3));
+        IntList.dcatenate(empty, b);
+        assertWithMessage("dcatenating empty with (4, 5, 6) should yield (4, 5, 6)").that(b).isEqualTo(IntList.of(4, 5, 6));
+
+        IntList f = IntList.dcatenate(empty, empty);
+        assertWithMessage("dcatenating two empties should yield empty").that(f).isNull();
     }
 }
