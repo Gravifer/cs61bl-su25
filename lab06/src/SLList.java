@@ -145,3 +145,6 @@ public class SLList {
         sentinel.next = prev;
     }
 }
+
+// NOTE: for generic doubly linked lists, see https://cs61bl.org/su25/labs/lab06/#enhancement-4-generic-lists
+//       it is crucial to understand these concepts.
