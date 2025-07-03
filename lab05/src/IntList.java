@@ -80,8 +80,11 @@ public class IntList {
      * @return The String representation of the list.
      */
     public String toString() {
-        // TODO: YOUR CODE HERE
-        return null;
+        String repr = String.valueOf(this.item);
+        if (this.next != null) {
+            repr += " " + this.next.toString();
+        }
+        return repr;
     }
 
     /**
