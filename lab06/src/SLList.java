@@ -130,6 +130,18 @@ public class SLList {
 
     /** Destructively reverses this list. */
     public void reverse() {
-        // TODO: YOUR CODE HERE
+        IntListNode prev = sentinel;
+        IntListNode current = sentinel.next;
+        IntListNode next;
+
+        while (current != sentinel) {
+            next = current.next; // Save the next node
+            current.next = prev; // Reverse the link
+            prev = current; // Move prev to current
+            current = next; // Move to the next node
+        }
+
+        // Update the sentinel's next to point to the new first element
+        sentinel.next = prev;
     }
 }

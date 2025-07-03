@@ -26,6 +26,26 @@ public class SLListTest {
 
     @Test
     public void testSLListReverse() {
-        // TODO: Add tests
+        SLList test1 = SLList.of(1, 2, 3, 4, 5); /* test1: {1, 2, 3, 4, 5} */
+        SLList test2 = SLList.of(5, 4, 3, 2, 1); /* test2: {5, 4, 3, 2, 1} */
+
+        test1.reverse(); /* test1: {5, 4, 3, 2, 1} */
+        assertWithMessage("test1 is not reversed correctly").that(test1.equals(test2)).isTrue();
+
+        test1 = SLList.of(1, 42); /* test1: {1, 2, 3, 4, 5} */
+        test2 = SLList.of(42, 1); /* test2: {5, 4, 3, 2, 1} */
+
+        test1.reverse(); /* test1: {42, 1} */
+        assertWithMessage("test1 is not reversed correctly").that(test1.equals(test2)).isTrue();
+
+        test1 = SLList.of(42); /* test1: {1, 2, 3, 4, 5} */
+        test2 = SLList.of(42); /* test2: {5, 4, 3, 2, 1} */
+
+        test1.reverse(); /* test1: {42, 1} */
+        assertWithMessage("test1 is not reversed correctly").that(test1.equals(test2)).isTrue();
+
+        SLList test3 = new SLList(); /* test3: {} */
+        test3.reverse(); /* test3: {} */
+        assertWithMessage("test3 should still be empty after reverse").that(test3.size()).isEqualTo(0);
     }
 }
