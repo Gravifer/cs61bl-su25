@@ -82,11 +82,16 @@ public class IntList {
      * @return The String representation of the list.
      */
     public String toString() {
-        String repr = String.valueOf(this.item); // less future refactoring compared to Integer.toString(this.item); "" + this.item smells bad
-        if (this.next != null) {
-            repr += " " + this.next; // toString() type-inferred
+        StringBuilder sb = new StringBuilder();
+        IntList current = this;
+        while (current != null) {
+            sb.append(current.item);
+            if (current.next != null) {
+                sb.append(" ");
+            }
+            current = current.next;
         }
-        return repr;
+        return sb.toString();
     }
 
     /**
@@ -103,19 +108,21 @@ public class IntList {
      * @param obj, another list (object)
      * @return Whether the two lists are equal.
      */
+    @Override
     public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
+        if (this == obj) return true;
+        if (!(obj instanceof IntList otherList)) return false;
+
+        IntList a = this;
+        IntList b = otherList;
+
+        while (a != null && b != null) {
+            if (a.item != b.item) return false;
+            a = a.next;
+            b = b.next;
         }
-        if (obj == null) {
-            return false;
-        }
-        if (obj instanceof IntList otherList) {
-            return this.item == otherList.item &&
-                    Objects.equals(this.next, otherList.next);
-            // // return Objects.equals(this.item, otherList.item) && Objects.equals(this.next, otherList.next); // * causes autoboxing
-        }
-        return false;
+
+        return a == null && b == null;
     }
 
     @Override // always override hashCode when overriding equals
