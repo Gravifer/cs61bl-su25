@@ -1,3 +1,5 @@
+import java.util.Objects;
+
 /** A data structure to represent a Linked List of Integers.
  * Each IntList represents one node in the overall Linked List.
  */
@@ -102,16 +104,23 @@ public class IntList {
      * @return Whether the two lists are equal.
      */
     public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
         if (obj == null) {
             return false;
         }
         if (obj instanceof IntList otherList) {
-            return this.item == otherList.item
-                    && (this.next == null && otherList.next == null
-                        || (this.next != null && otherList.next != null
-                            && this.next.equals(otherList.next)));
+            return this.item == otherList.item &&
+                    Objects.equals(this.next, otherList.next);
+            // // return Objects.equals(this.item, otherList.item) && Objects.equals(this.next, otherList.next); // * causes autoboxing
         }
         return false;
+    }
+
+    @Override // always override hashCode when overriding equals
+    public int hashCode() {
+        return Objects.hash(item, next);
     }
 
     /**
