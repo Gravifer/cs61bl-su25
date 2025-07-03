@@ -112,9 +112,20 @@ public class SLList {
         size += 1;
     }
 
-    /** Adds x to the list at the specified index. */
+    /** Adds x to the list at the specified index.
+     * When index is out of bound, simply append at the end of the list. */
     public void add(int index, int x) {
-        // TODO: YOUR CODE HERE
+        if (index < 0) {
+            throw new IndexOutOfBoundsException("Index cannot be negative: " + index);
+        } else if (index > size) { // * per spec
+            index = size; // Adjust index to append at the end
+        }
+        IntListNode current = sentinel;
+        for (int i = 0; i < index; i++) {
+            current = current.next;
+        }
+        current.next = new IntListNode(x, current.next);
+        size += 1;
     }
 
     /** Destructively reverses this list. */
