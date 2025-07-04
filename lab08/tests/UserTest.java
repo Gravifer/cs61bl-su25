@@ -5,7 +5,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 public class UserTest {
     @Test
     public void testComparable() {
-        System.out.println("Test that the given example works."); // technically speaking this is no longer the given example
+        System.out.println("Test that the given example works."); // technically speaking, this is no longer the given example
         User[] users = {
                 new User(2, "Christine", ""),
                 new User(4, "Kevin", ""),
