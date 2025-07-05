@@ -11,6 +11,8 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
     public ArrayDeque61B() {
         this(8); // Initial capacity of 8 per spec
     }
+
+    @SuppressWarnings("unchecked")
     public ArrayDeque61B(int initialCapacity) {
         if (initialCapacity <= 0) {
             throw new IllegalArgumentException("Initial capacity must be greater than 0");
@@ -19,8 +21,9 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         size = 0; // Start with size 0
     }
 
-    private T[] resize() {
-        // Resize the array to double its current size
+    @SuppressWarnings({"unchecked", "ManualArrayCopy"})
+    private void grow() {
+        // grow the array to double its current size
         T[] newItems = (T[]) new Object[items.length * 2];
         // Copy existing elements to the new array
         for (int i = 0; i < size; i++) {
@@ -28,7 +31,26 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         }
         head = 0; // Reset head to 0 since we are copying elements from the start
         items = newItems; // Update the reference to the new array
-        return items;
+    }
+
+    @SuppressWarnings({"unchecked", "ManualArrayCopy"})
+    private void shrink() {
+        // shrink the array to half its current size
+        T[] newItems = (T[]) new Object[items.length / 2];
+        // Copy existing elements to the new array
+        for (int i = 0; i < size; i++) {
+            newItems[i] = items[head + i];
+        }
+        head = 0; // Reset head to 0 since we are copying elements from the start
+        items = newItems; // Update the reference to the new array
+    }
+
+    /**
+     * This method is used to inspect the size of the backing array for testing purposes.
+     * It is not part of the public API and should not be used outside of tests.
+     */
+    protected int getBackingArrayLength() {
+        return items.length; // Access the size of the backing array
     }
 
     /**
@@ -41,9 +63,9 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         if (x == null) {
             throw new IllegalArgumentException("Cannot add null to the deque");
         }
-        // Ensure there's enough space, otherwise resize
+        // Ensure there's enough space, otherwise grow
         if (size == items.length) {
-            resize();
+            grow();
         }
         // // Shift elements to the right to make space at the front
         // for (int i = size; i > 0; i--) {
@@ -68,11 +90,11 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         if (x == null) {
             throw new IllegalArgumentException("Cannot add null to the deque");
         }
-        // Ensure there's enough space, otherwise resize
+        // Ensure there's enough space, otherwise grow
         if (size == items.length) {
-            resize();
+            grow();
         }
-        items[size] = x; // Add the new item at the back
+        items[Math.floorMod(head + size, items.length)] = x; // Place the new item at the back
         size++;
     }
 
@@ -90,7 +112,7 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         // Create a new list and copy elements from the deque
         List<T> list = new java.util.ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            list.add(items[i]);
+            list.add(items[Math.floorMod(head + i, items.length)]);
         }
         return list; // Return the new list
     }
@@ -116,7 +138,7 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
     }
 
     /**
-     * Remove and return the element at the front of the deque, if it exists.
+     * Remove and return the element at the front of the deque if it exists.
      *
      * @return removed element, otherwise {@code null}.
      */
@@ -129,11 +151,15 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         items[head] = null; // Clear the item at the front
         head = Math.floorMod(head + 1, items.length); // Move head to the next position
         size--; // Decrease size
+        // If the size is less than a quarter of the array length, shrink the array
+        if (size < items.length / 4 && items.length > 8) {
+            shrink(); // Shrink the array if necessary
+        }
         return removedItem; // Return the removed item
     }
 
     /**
-     * Remove and return the element at the back of the deque, if it exists.
+     * Remove and return the element at the back of the deque if it exists.
      *
      * @return removed element, otherwise {@code null}.
      */
@@ -146,6 +172,10 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         T removedItem = items[lastIndex]; // Get the item at the back
         items[lastIndex] = null; // Clear the item at the back
         size--; // Decrease size
+        // If the size is less than a quarter of the array length, shrink the array
+        if (size < items.length / 4 && items.length > 8) {
+            shrink(); // Shrink the array if necessary
+        }
         return removedItem; // Return the removed item
     }
 
