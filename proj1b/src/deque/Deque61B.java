@@ -62,6 +62,10 @@ public interface Deque61B<T> extends Iterable<T> {
      * where item1 is the first element and itemN is the last element.
      *
      * @return a String representation of the Deque61B
+     * <p>
+     * see: <a href="https://stackoverflow.com/questions/24595266/why-is-it-not-allowed-add-tostring-to-interface-as-default-method">
+     *     Why is it not allowed add toString() to interface as default method? - Stack Overflow
+     *     </a>
      */
     default String Deque61BToString() {
         if (isEmpty()) {
