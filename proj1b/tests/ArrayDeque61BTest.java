@@ -243,6 +243,52 @@ public class ArrayDeque61BTest {
     }
 
     @Test
+    void testEqualsAndHashCode() {
+        ArrayDeque61B<Integer> deque1 = new ArrayDeque61B<>();
+        ArrayDeque61B<Integer> deque2 = new ArrayDeque61B<>();
+
+        deque1.addLast(1);
+        deque1.addLast(2);
+        deque2.addLast(1);
+        deque2.addLast(2);
+
+        assertThat(deque1).isEqualTo(deque2);
+        assertThat(deque1.hashCode()).isEqualTo(deque2.hashCode());
+
+        deque2.addLast(3);
+        assertThat(deque1).isNotEqualTo(deque2);
+    }
+
+    @Test
+    void testToString() {
+        ArrayDeque61B<Integer> deque = new ArrayDeque61B<>();
+        assertThat(deque.toString()).isEqualTo("[]");
+
+        deque.addLast(1);
+        assertThat(deque.toString()).isEqualTo("[1]");
+
+        deque.addLast(2);
+        assertThat(deque.toString()).isEqualTo("[1, 2]");
+
+        deque.addFirst(0);
+        assertThat(deque.toString()).isEqualTo("[0, 1, 2]");
+    }
+
+    @Test
+    void testIterator() {
+        ArrayDeque61B<Integer> deque = new ArrayDeque61B<>();
+        deque.addLast(1);
+        deque.addLast(2);
+        deque.addLast(3);
+
+        assertThat(deque).containsExactly(1, 2, 3).inOrder();
+
+        // Test iterator after modifications
+        deque.removeFirst();
+        assertThat(deque).containsExactly(2, 3).inOrder();
+    }
+
+    @Test
     @DisplayName("ArrayDeque61B handles null elements correctly")
     void handlesNullElements() {
         ArrayDeque61B<Integer> deque = new ArrayDeque61B<>();

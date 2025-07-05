@@ -1,8 +1,10 @@
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 // // import java.util.Optional; // * don't use Optional when you already use a sentinel
 
-public class LinkedListDeque61B<T> implements  Deque61B<T> {
+public class LinkedListDeque61B<T> implements Deque61B<T> {
     // This class is a placeholder for the actual implementation of LinkedListDeque61B.
     // You would implement the methods defined in the Deque61B interface here.
 
@@ -189,6 +191,73 @@ public class LinkedListDeque61B<T> implements  Deque61B<T> {
             this.value = value;
             this.next = next;
             this.prev = prev;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return Deque61BToString(); // Use the default implementation from the interface
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true; // Check if both references point to the same object
+        if (!(o instanceof Deque61B<?> other)) return false; // Check if the other object is an instance of ArrayDeque61B
+        return equalsDeque61B(other);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 1; // Initialize hash code
+        for (int i = 0; i < size; i++) {
+            T item = get(i); // Get each item in the deque
+            result = 31 * result + (item == null ? 0 : item.hashCode()); // Update hash code with item's hash code
+        }
+        return result; // Return the final computed hash code
+    }
+
+    /**
+     * Returns an iterator over elements of type {@code T}.
+     *
+     * @return an Iterator.
+     */
+    @SuppressWarnings("NullableProblems")
+    @Override
+    public Iterator<T> iterator() {
+        return new LinkedDeque61BIterator();
+    }
+
+    private class LinkedDeque61BIterator implements Iterator<T> {
+        private Node current;
+        /**
+         * Returns {@code true} if the iteration has more elements.
+         * (In other words, returns {@code true} if {@link #next} would
+         * return an element rather than throwing an exception.)
+         *
+         * @return {@code true} if the iteration has more elements
+         */
+        @Override
+        public boolean hasNext() {
+            return !isEmpty() && current.next != sentinel;
+        }
+
+        /**
+         * Returns the next element in the iteration.
+         *
+         * @return the next element in the iteration
+         * @throws NoSuchElementException if the iteration has no more elements
+         */
+        @Override
+        public T next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more elements in the ArrayDeque61B iterator.");
+            }
+            if (current == null) {
+                current = sentinel.next; // Start from the first real node after the sentinel.
+            } else {
+                current = current.next; // Move to the next node.
+            }
+            return current.value; // Return the value of the current node.
         }
     }
 }

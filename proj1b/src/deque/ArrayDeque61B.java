@@ -1,6 +1,8 @@
 package deque;
+import java.util.Iterator;
 import java.util.List;
 import java.lang.Math;
+import java.util.NoSuchElementException;
 
 public class ArrayDeque61B<T> implements Deque61B<T> {
     // This class implements a deque using an array.
@@ -216,5 +218,91 @@ public class ArrayDeque61B<T> implements Deque61B<T> {
         }
         // Recursive case: get the item at the next index
         return getRecursive(index - 1);
+    }
+
+    @Override
+    public String toString() {
+        // if (isEmpty()) {
+        //     return "[]"; // Return empty representation if deque is empty
+        // }
+        // StringBuilder sb = new StringBuilder("[");
+        // for (int i = 0; i < size; i++) {
+        //     sb.append(get(i)); // Append each item in the deque
+        //     if (i < size - 1) {
+        //         sb.append(", "); // Add a comma and space between items
+        //     }
+        // }
+        // sb.append("]"); // Close the string representation
+        // return sb.toString(); // Return the string representation of the deque
+        return Deque61BToString(); // Use the default implementation from the interface
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true; // Check if both references point to the same object
+        if (!(o instanceof Deque61B<?> other)) return false; // Check if the other object is an instance of ArrayDeque61B
+        // if (this.size != other.size) return false; // Check if sizes are equal
+        //
+        // // Compare elements in the deque
+        // for (int i = 0; i < size; i++) {
+        //     if (!get(i).equals(other.get(i))) {
+        //         return false; // Return false if any element is not equal
+        //     }
+        // }
+        // return true; // All elements are equal, return true
+        return equalsDeque61B(other);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 1; // Initialize hash code
+        for (int i = 0; i < size; i++) {
+            T item = get(i); // Get each item in the deque
+            result = 31 * result + (item == null ? 0 : item.hashCode()); // Update hash code with item's hash code
+        }
+        return result; // Return the final computed hash code
+    }
+
+    /**
+     * Returns an iterator over elements of type {@code T}.
+     *
+     * @return an Iterator.
+     */
+    @SuppressWarnings("NullableProblems")
+    @Override
+    public Iterator<T> iterator() {
+        return new ArrayDeque61BIterator();
+    }
+
+    private class ArrayDeque61BIterator implements Iterator<T> {
+        private int index;
+
+        /**
+         * Returns {@code true} if the iteration has more elements.
+         * (In other words, returns {@code true} if {@link #next} would
+         * return an element rather than throwing an exception.)
+         *
+         * @return {@code true} if the iteration has more elements
+         */
+        @Override
+        public boolean hasNext() {
+            return index < size; // Check if there are more elements to iterate
+        }
+
+        /**
+         * Returns the next element in the iteration.
+         *
+         * @return the next element in the iteration
+         * @throws NoSuchElementException if the iteration has no more elements
+         */
+        @Override
+        public T next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more elements in the ArrayDeque61B iterator.");
+            }
+            T item = items[Math.floorMod(head + index, items.length)]; // Get the item at the current index
+            index++; // Move to the next index
+            return item; // Return the item
+        }
     }
 }
