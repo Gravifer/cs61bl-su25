@@ -12,6 +12,7 @@ import java.io.InputStream;
  *
  * @author Eli Lipsitz
  */
+@SuppressWarnings("CallToPrintStackTrace")
 public class GuitarPlayer {
     private Sequence sequence = null;
     private GuitarString[] strings;
