@@ -97,4 +97,21 @@ public class AmoebaTest {
         assertThat(i).isEqualTo(5);
     }
 
+    @Test
+    public void testDFS() {
+        AmoebaFamily family = new AmoebaFamily("root");
+        family.addChild("root", "a");
+        family.addChild("root", "b");
+        family.addChild("a", "c");
+        family.addChild("a", "d");
+        family.addChild("b", "e");
+        family.addChild("b", "f");
+        String[] expected = { "root", "a", "c", "d", "b", "e", "f" };
+        int i = 0;
+        for (AmoebaFamily.Amoeba a : family) {
+            assertThat(a.toString()).isEqualTo(expected[i]);
+            i++;
+        }
+        assertThat(i).isEqualTo(7);
+    }
 }
