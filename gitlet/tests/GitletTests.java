@@ -30,6 +30,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.*;
+import static com.google.common.truth.Truth.*;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class GitletTests {
