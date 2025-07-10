@@ -16,11 +16,13 @@
   I use the Ultimate edition via GitHub Student Developer Pack, 
   utilizing the Git extension, as well as the VS Code editor with the [GitLens](https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens) extension (by [GitKraken](https://www.gitkraken.com/gitlens)).
 - Cherry-picking past projects:
-  What attracted me to this course was the [gitlet](https://sp21.datastructur.es/materials/proj/proj2/proj2) project,
+  What attracted me to this course was [the gitlet project](https://sp21.datastructur.es/materials/proj/proj2/proj2),
   which is being replaced starting from [sp24](https://sp24.datastructur.es/);
   [su24](https://cs61bl.org/su24/projects/gitlet/design) is the latest version to still have it.
   I also cherry-picked various versions of Project 0.
-  - Note that the gitlet tests [would issue warnings with Java 17+](https://openjdk.org/jeps/411) 
+  - Note that the [gitlet](./gitlet/) tests [would issue warnings with Java 17+](https://openjdk.org/jeps/411) 
     and [wouldn't compile with Java 24+](https://openjdk.org/jeps/486),
     as the testing requires `SecurityManager` to trap system exits.
     I don't about a better way to handle this, so I use Java 21 only for this project.
+  - [`git@e83c516`](https://github.com/git/git/tree/e83c5163316f89bfbde7d9ab23ca2e25604af290), 
+    the first commit Linus ported to GitHub, is included as a submodule for reference in the gitlet project.
