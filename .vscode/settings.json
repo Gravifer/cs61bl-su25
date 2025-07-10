@@ -62,7 +62,8 @@
         "lecture",
         "proj",
         "skeleton",
-        "ide"
+        "ide",
+        "gitlet"
     ],
     "java.project.sourcePaths": [
         "lab*/src",

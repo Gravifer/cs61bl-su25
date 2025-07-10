@@ -65,16 +65,18 @@ public class Main {
         }
 
         switch(firstArg) {
-            case "init":
+            case "init" -> {
                 // TODO: handle the `init` command
                 init_db();
-                break;
-            case "add":
+            }
+            case "add" -> {
                 // TODO: handle the `add [filename]` command
-                break;
+                throw new UnsupportedOperationException("The 'add' command is not yet implemented.");
+            }
             // TODO: FILL THE REST IN
-            default:
+            default -> {
                 throw new IllegalStateException("Unexpected value: " + firstArg);
+            }
         }
     }
 
