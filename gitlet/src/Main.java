@@ -66,7 +66,7 @@ public class Main {
 
         switch(firstArg) {
             case "init" -> {
-                // TODO: handle the `init` command
+                // DONE: handle the `init` command
                 init_db();
             }
             case "add" -> {
@@ -90,14 +90,20 @@ public class Main {
         // the provided Repository class uses CWD as the repo root naively,
         // so we should always do verifications in Main
         if (Repository.GITLET_DIR.exists()) {
+            // the spec does not ask for reinitialization of the repository, so we should not allow it
             System.out.println("A Gitlet version-control system already exists in the current directory.");
             return;
         }
         try {
-            Repository.GITLET_DIR.mkdir();
-            System.out.println("Initialized an empty Gitlet repository in " + Repository.GITLET_DIR.getAbsolutePath());
+            if (Repository.GITLET_DIR.mkdir()) {
+                // if the directory was created successfully, we can initialize the repository
+                // TODO: create the initial commit and branch
+                System.err.println("Initialized an empty Gitlet repository in " + Repository.GITLET_DIR.getAbsolutePath()); // no response per spec
+            } else {
+                System.err.println("Unable to create .gitlet/ directory.");
+                System.exit(1);
+            }
         } catch (Exception e) {
-            System.out.println("Unable to create .gitlet/ directory.");
             System.out.println("An unexpected error occurred while initializing the Gitlet repository: " + e.getMessage());
         }
     }
