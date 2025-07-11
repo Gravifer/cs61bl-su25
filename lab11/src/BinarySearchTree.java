@@ -12,13 +12,46 @@ public class BinarySearchTree<T extends Comparable<T>> extends BinaryTree<T> {
 
     /* Returns true if the BST contains the given KEY. */
     public boolean contains(T key) {
-        // TODO: YOUR CODE HERE: an extra helper method might be useful
+        // DONE: YOUR CODE HERE: an extra helper method might be useful // * except I didn't use recursion
+        TreeNode<T> curr = root;
+        while (curr != null) {
+            if (curr.item.equals(key)) {
+                return true;
+            } else if (curr.item.compareTo(key) > 0) {
+                curr = curr.left;
+            } else {
+                curr = curr.right;
+            }
+        }
         return false;
     }
 
     /* Adds a node for KEY iff KEY isn't in the BST already. */
     public void add(T key) {
-        // TODO: YOUR CODE HERE: an extra helper method might be useful
+        // DONE: YOUR CODE HERE: an extra helper method might be useful
+        TreeNode<T> newNode = new TreeNode<>(key);
+        if (root == null) {
+            root = newNode; // If the tree is empty, set the new node as root
+            return;
+        }
+        TreeNode<T> curr = root;
+        TreeNode<T> parent = null;
+        while (curr != null) {
+            parent = curr;
+            if (curr.item.compareTo(key) > 0) {
+                curr = curr.left; // Go left
+            } else if (curr.item.compareTo(key) < 0) {
+                curr = curr.right; // Go right
+            } else {
+                return; // Key already exists, do not add
+            }
+        }
+        // Insert the new node as a child of the parent
+        if (parent.item.compareTo(key) > 0) {
+            parent.left = newNode; // Add as left child
+        } else {
+            parent.right = newNode; // Add as right child
+        }
     }
 
     /* Deletes a node from the BST. 
