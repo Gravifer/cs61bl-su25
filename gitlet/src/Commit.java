@@ -2,10 +2,11 @@ package gitlet;
 
 
 // DONE: any imports you need here
+
+import java.io.File;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Date; // DONE: You'll likely use this in this class
-import java.util.TreeMap;
+import java.util.*;
+// import java.time.Instant; // * no need for this, Date is sufficient
 
 import static gitlet.Utils.*;
 
@@ -26,49 +27,109 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
 
     // * Commit instances should be immutable, so attributes are marked final. No need to make them private.
 
-    /** The unique hash ID of this Commit. */
-    protected final String uid;
-    /** Returns the unique ID of this Commit.
-     *  <p>
-     *  The UID is generated based on the commit message, timestamp, and parent commits.
-     *  It is used to uniquely identify this commit in the repository.
-     */
-    private String mkUid() { // sha1 only accepts String or byte[] as input, so we need to convert the commit attributes to a String.
-        // Generate a unique ID for this commit based on its message, timestamp, authorTimestamp, and parents.
-        return sha1("commit ",message, timestamp.toString(), authorTimestamp.toString(), Arrays.toString(parents));
-        // return Utils.sha1((Object) Utils.serialize(this));
-    }
-    @Override
-    public String getUid() {
-        return uid;
-    }
+    // /** The unique hash ID of this Commit. */
+    // protected final String uid; // ! it's moot to record ones uid in itself
+    // /** Returns the unique ID of this Commit.
+    //  *  <p>
+    //  *  The UID is generated based on the commit message, timestamp, and parent commits.
+    //  *  It is used to uniquely identify this commit in the repository.
+    //  */
+    // private String mkUid() { // sha1 only accepts String or byte[] as input, so we need to convert the commit attributes to a String.
+    //     // Generate a unique ID for this commit based on its message, timestamp, authorTimestamp, and parents.
+    //
+    //     return sha1("commit ", serialize(message), serialize(timestamp), serialize(authorTimestamp), serialize(parents));
+    // }
 
-    /** The parent Commits of this Commit; should only have one parent for non-merge Commits.
-     *  <p>
-     *  For merge commits, this array can have more than one parent.
+    /**
+     * The parent Commits of this Commit; should only have one parent for non-merge Commits.
+     * <p>
+     * For merge commits, this array can have more than one parent.
      */
     protected final String[] parents;
 
-    /** The timestamp of this Commit. */
+    /**
+     * The timestamp of this Commit.
+     */
     protected final Date timestamp;
     protected final Date authorTimestamp;
 
-    /** The message of this Commit. */
+    /**
+     * The message of this Commit.
+     */
     protected final String message;
+
+    protected final boolean isEmpty;
+
+    /**
+     * The blobs (file contents) associated with this Commit.
+     * <p>
+     * This is a map from file names to their corresponding Blob objects.
+     * It represents the state of the files in the repository at the time of this commit.
+     */
+    private final Map<String, String> fileBlobs;
 
     /* DONE: fill in the rest of this class. */
 
     /**
      * Creates a new Commit with the given message.
      *
-     * @param message the commit message
+     * @param message    the commit message
+     * @param parent     the UID of the parent commit
+     * @param files      the list of files to be included in this commit
+     * @param allowEmpty whether to allow an empty commit (no files)
      */
-    public Commit(String message, String parent) {
+    public Commit(String message, String parent, List<File> files, boolean allowEmpty) {
+        this.isEmpty = files == null || files.isEmpty();
+        if (!allowEmpty && isEmpty) {
+            throw error("Nothing to commit.");
+        }
         this.parents = new String[]{parent};
         this.timestamp = new Date(); // use current time
         this.authorTimestamp = timestamp;
         this.message = message;
-        this.uid = mkUid();
+        this.fileBlobs = new HashMap<>();
+        // * initialize fileBlobs with the contents of the files
+        // * we skipped the process of staging the files first, so that selective commiting becomes possible
+        if (files != null) {
+            for (File file : files) {
+                if (file.exists()) {
+                    Blob blob = Blob.blobify(file); // persist the blob to the object database
+                    this.fileBlobs.put(file.getPath(), blob.getUid());
+                } else {
+                    throw error("File does not exist: " + file.getAbsolutePath());
+                }
+            }
+        }
+        // * persist the commit itself
+        this.persist();
+    }
+    public Commit(String message, String parent, List<File> files){
+        this(message, parent, files, false);
+    }
+
+    /**
+     * Creates a new Commit with the given message.
+     *
+     * @param message    the commit message
+     * @param parent     the UID of the parent commit
+     * @param staged     the map of staged files (file paths to their Blob UIDs)
+     * @param allowEmpty whether to allow an empty commit (no files)
+     */
+    public Commit(String message, String parent, Map<String, String> staged, boolean allowEmpty) {
+        this.isEmpty = staged == null || staged.isEmpty();
+        if (!allowEmpty && isEmpty) {
+            throw error("Nothing to commit.");
+        }
+        this.parents = new String[]{parent};
+        this.timestamp = new Date(); // use current time
+        this.authorTimestamp = timestamp;
+        this.message = message;
+        this.fileBlobs = staged;
+        // * persist the commit itself
+        this.persist();
+    }
+    public Commit(String message, String parent, Map<String, String> staged){
+        this(message, parent, staged, false);
     }
 
     // /**
@@ -78,14 +139,16 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
     //  */
     // public static final Commit initialCommit = new Commit(); // * disallowed by the auto-grader
     public static Commit initialCommit() {
-        // * the initial commit is a singleton, so we return the same instance every time
+        // return initialCommit;
         return new Commit();
     }
-    /** Private constructor for initial commit.
-     *  <p>
-     *  The initial commit has no parents, a message of "initial commit",
-     *  and a timestamp of 00:00:00 UTC, Thursday, 1 January 1970.
-     *  It is created only once and is used as the root of all commit trees.
+
+    /**
+     * Private constructor for <i>the</i> initial (aka root) commit.
+     * <p>
+     * The initial commit has no parents, a message of "initial commit",
+     * and a timestamp of 00:00:00 UTC, Thursday, 1 January 1970.
+     * It is created only once and is used as the root of all commit trees.
      */
     private Commit() {
         // if (initialCommit != null) {
@@ -95,7 +158,20 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
         this.timestamp = new Date(0); // Thu Jan 1 00:00:00 1970 +0000
         this.authorTimestamp = timestamp; // same as timestamp for initial commit
         this.parents = new String[]{}; // initial commit has no parents (only it should do this)
-        this.uid = mkUid();
+        this.fileBlobs = new HashMap<>(); // initial commit has no files
+        this.isEmpty = true; // initial commit is empty
+    }
+
+    /**
+     * Checks if this Commit is the initial (aka root) commit.
+     * <p>
+     * The initial commit is a special commit that has no parents and a specific UID.
+     *
+     * @return true if this Commit is the initial commit, false otherwise
+     */
+    public boolean isInitialCommit() {
+        // * the initial commit is a singleton, so we can check if it is the same instance
+        return this.getUid().equals(initialCommit().getUid()) && this.parents.length == 0;
     }
 
     /**
@@ -121,7 +197,7 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
      * @throws ClassCastException   if the specified object's type prevents it
      *                              from being compared to this object. Happens if it is not a Commit.
      * @implNote this class has a topological ordering that is inconsistent with equals.
-     *   {@code (x.compareTo(y)==0)} implies only that the commits are not ancestral or descendant of each other.     *
+     * {@code (x.compareTo(y)==0)} implies only that the commits are not ancestral or descendant of each other.     *
      * @see java.lang.Comparable#compareTo(Object)
      */
     @Override
@@ -133,35 +209,40 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
             throw new NullPointerException("Cannot compare to null.");
         }
         // traverse the graph of commits to determine the relationship
-        if (this.uid.equals(o.uid)) {
+        if (this.equals(o)) {
             return 0; // same commit
         }
         return 0;
     } // TODO: implement the actual comparison logic
 
-    /** Only compared by UID. Does <i>not</i> require the other object to be a commit. */
+    /**
+     * Only compared by UID. Does <i>not</i> require the other object to be a commit.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null) return false;
         if (!(o instanceof Dumpable other)) return false;
-        return uid.equals(other.getUid());
+        return this.getUid().equals(other.getUid());
         // if (!(o instanceof Commit commit)) return false;
         // return uid.equals(commit.uid);
     }
 
-    /** Returns the hash code of this Commit, which is based on its UID.
+    /**
+     * Returns the hash code of this Commit, which is based on its UID.
      * This is used for storing commits in hash-based collections like HashMap.
+     *
      * @return the hash code of this Commit
      */
     @Override
     public int hashCode() {
-        return uid.hashCode();
+        return getUid().hashCode();
     }
+
     @Override
     public String toString() {
         return "Commit{" +
-                "uid='" + uid + '\'' +
+                "uid='" + getUid() + '\'' +
                 ", parents=" + String.join(", ", parents) +
                 ", timestamp=" + timestamp +
                 ", message='" + message + '\'' +
@@ -177,13 +258,7 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
     }
 
     @Override
-    public String getType() {
+    public String getDumpType() {
         return "commit";
-    }
-
-    @Override
-    public boolean verifyUid() {
-        // Verify that the UID is correctly generated based on the commit's attributes.
-        return uid.equals(mkUid());
     }
 }

@@ -510,18 +510,39 @@ public class GitletAdditionalTests {
     }
 
     @Test
-    public void myTest01_init() {
+    public void myTest01_init_has_initialCommit() {
         gitletCommand(new String[]{"init"}, "");
         assertFileExists(".gitlet");
         assertFileExists(".gitlet/HEAD");
         // assert the HEAD file contains the uid of the initial commit
         try {
             assertWithMessage("HEAD file should contain the initial commit UID")
-                .that(Files.readString(Path.of(".gitlet","HEAD")))
+                .that(Files.readString(Path.of(".gitlet/HEAD")))
                 .isEqualTo(Commit.initialCommit().getUid());
             assertEquals(Commit.initialCommit().getUid(), Files.readString(Path.of(".gitlet", "HEAD")));
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void myTest02_add(){
+        gitletCommand(new String[]{"init"}, "");
+        writeFile(WUG, "wug.txt");
+        // assert that number of files (recursive) under .gitlet/objects increased
+        try (
+            var beforeStream = Files.walk(Path.of(".gitlet/objects"));
+        ) {
+            long objectCountBefore = beforeStream.count();
+            gitletCommand(new String[]{"add", "wug.txt"}, "");
+            assertFileEquals(WUG, "wug.txt");
+            assertFileExists(".gitlet/index");
+            try (var afterStream = Files.walk(Path.of(".gitlet/objects"))) {
+                long objectCountAfter = afterStream.count();
+                assertTrue("the number of files under .gitlet/objects should increase", objectCountAfter > objectCountBefore);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to count files in .gitlet/objects", e);
         }
     }
 }

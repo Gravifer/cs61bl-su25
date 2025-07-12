@@ -4,6 +4,7 @@ package gitlet;
 // import org.apache.commons.lang3.NotImplementedException;  // * actually, don't use this in Java 11+ and above when there is no actual need to do so
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Scanner;
 
 // import static jdk.internal.reflect.Reflection.getCallerClass; // ! Package 'jdk.internal.reflect' is declared in module 'java.base', but the latter does not export it to the unnamed module.
@@ -32,12 +33,14 @@ public class Main {
     /// - `-i` `--interactive` - run commands interactively.\
     ///     In interactive mode, the program will prompt for commands until `exit` is entered.
     /// <header><blockquote>GITLET - A tattling intern from heck</blockquote></header>
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         // DONE: what if args is empty?
         if (args.length == 0) {
             System.out.println("Please enter a command."); // verbatim per spec
             return;
         }
+        // the Repository class cannot stay static after all
+        Repository repo = new Repository();
         String firstArg = args[0];
 
         // determine if this function is called from itself
@@ -47,95 +50,124 @@ public class Main {
         // boolean calledFromMain = getCallerClass() == Main.class;
 
         if (!calledFromSelf && (firstArg.equals("-i") || firstArg.equals("--interactive"))) {
-            // interactiveMode = true;
-            while (true) {
-                // use commands interactively
-                Scanner myObj = new Scanner(System.in);  // Create a Scanner object
-                System.out.println("Supply a command or exit: [init, add, commit, rm, log, global-log, find, status, branch, checkout, reset, merge]");
-                if (myObj.hasNextLine()) {
-                    String input = myObj.nextLine();
-                    String[] inputArgs = input.split(" ");
-                    if (inputArgs.length == 0) {
-                        System.out.println("Please enter a command.");
-                        continue;
-                    }
-                    firstArg = inputArgs[0];
-                    if (firstArg.equals("exit")) {
-                        System.out.println("Exiting Gitlet.");
-                        // interactiveMode = false;
-                        return;
-                    }
-                    // handleCommand(firstArg, inputArgs);
-                    main(new String[]{firstArg});
-                }
-            }
-        }
-
-        switch(firstArg) {
-            case "init" -> // * A Gitlet system is considered "initialized" in a particular location if it has a `.gitlet` directory there.
-                // DONE: handle the `init` command
-                init_db();
-            case "add" ->
-                // TODO: handle the `add [filename]` command
-                throw new UnsupportedOperationException("The 'add' command is not yet implemented.");
-            // TODO: FILL THE REST IN
-            default ->
-                System.out.println("No command with that name exists.");
-                // throw new IllegalStateException("Unexpected value: " + firstArg);
+            System.out.println("Entering interactive mode. Type 'exit' to exit.");
+            interactiveMode(repo);
+        } else if (firstArg.equals("-h") || firstArg.equals("--help")) {
+            printHelp();
+        } else {
+            // handle commands
+            cmd(repo, firstArg, Arrays.copyOfRange(args, 1, args.length));
         }
     }
 
-    /** Initializes the {@code .gitlet} directory, aka the Gitlet database.
-     * <p>
-     * Creates a new Gitlet version-control system in the current directory.
-     * This system will automatically start with one commit:
-     * a commit that contains no files and has the commit message initial commit (just like that, with no punctuation).
-     * It will have a single branch: main, which initially points to this initial commit, and main will be the current branch.
-     * The timestamp for this initial commit will be 00:00:00 UTC, Thursday, 1 January 1970
-     * in whatever format you choose for dates (this is called “The (Unix) Epoch”, represented internally by the time 0).
-     * Since the initial commit in all repositories created by Gitlet will have exactly the same content,
-     * it follows that all repositories will automatically share this commit (they will all have the same UID)
-     * and all commits in all repositories will trace back to it.
-     *  <header><blockquote>GITLET - A tattling intern from heck</blockquote></header>
-     *
-     * @implNote for now, it is not clear if repo initialization should be moved to another class
-     */
-    private static void init_db() {
-        // * the provided Repository class uses CWD as the repo root naively,
-        // * so we should always do verifications in Main
-        if (Repository.GITLET_DIR.exists()) {
-            // * the spec does not ask for reinitialization of the repository, so we should not allow it
-            System.out.println("A Gitlet version-control system already exists in the current directory.");
-            return;
-        }
-        String dbPath = Repository.GITLET_DIR.getAbsolutePath();
-        try {
-            if (Repository.GITLET_DIR.mkdir()) {
-                // if the directory was created successfully, we can initialize the repository
-                // TODO: create the initial commit
-                // TODO: create the default branch ("master")
-                Commit initialCommit = Commit.initialCommit(); // initial commit is empty and a singleton, so no need to persist it
-                // nevertheless, we should initialize the object database
-                if (!Repository.OBJ_DIR.exists() && !Repository.OBJ_DIR.mkdirs()) {
-                    throw error("Unable to create objects directory in .gitlet/ directory.");
+    private static void interactiveMode(Repository repo) {
+        // interactiveMode = true;
+        while (true) {
+            // use commands interactively
+            Scanner myObj = new Scanner(System.in);  // Create a Scanner object
+            System.out.println("Supply a command or exit: [init, add, commit, rm, log, global-log, find, status, branch, checkout, reset, merge]");
+            if (myObj.hasNextLine()) {
+                String input = myObj.nextLine();
+                String[] inputArgs = input.split(" ");
+                if (inputArgs.length == 0) {
+                    System.out.println("Please enter a command.");
+                    continue;
                 }
-                if (!Repository.OBJ_DIR.isDirectory()) {
-                    throw error("The objects directory in .gitlet/ is not a directory.");
+                String firstArg = inputArgs[0];
+                if (firstArg.equals("exit")) {
+                    System.out.println("Exiting Gitlet.");
+                    return;
                 }
-
-                if (!Repository.HEAD_FILE.createNewFile() && !Repository.HEAD_FILE.createNewFile()) { // create the HEAD file
-                    throw error("Unable to create HEAD file in .gitlet/ directory.");
+                if (firstArg.equals("help")) {
+                    printHelp();
+                    continue;
                 }
-                writeContents(Repository.HEAD_FILE, initialCommit.uid); // write the initial commit UID to HEAD
-                System.err.println("Initialized an empty Gitlet repository in " + dbPath); // Per spec, no output on System.out
-            } else {
-                System.err.printf("init_db(): java.io.File.mkdir() returned false for " + dbPath);
-                // System.exit(1); // ! Per spec, always exit with exit code 0, even in the presence of errors.
-                throw new IOException(String.format("Unable to create directory at " + dbPath));
+                inputArgs = Arrays.copyOfRange(inputArgs, 1, inputArgs.length);
+                try {
+                    cmd(repo, firstArg, inputArgs);
+                } catch (IOException e) {
+                    System.err.println("An error occurred while executing the command: " + e.getMessage());
+                } catch (UnsupportedOperationException e) {
+                    System.err.println(e.getMessage());
+                }
             }
-        } catch (Exception e) {
-            System.out.println("An unexpected error occurred while initializing the Gitlet repository: " + e.getMessage());
-            throw new GitletException("Unable to create .gitlet/ directory.");
         }
+    }
+
+    private static void cmd(Repository repo, String command, String[] args) throws IOException {
+        UnsupportedOperationException todo = new UnsupportedOperationException(String.format("The '%s' command is not yet implemented.",command));
+        switch(command) {
+            case "init" -> // * A Gitlet system is considered "initialized" in a particular location if it has a `.gitlet` directory there.
+                Repository.init_db(); // DONE: handle the `init` command
+            case "add" -> {
+                // DONE: handle the `add [filename]` command
+                // check the filenames are valid
+                if (args.length == 0) {
+                    System.out.println("Please enter a file name to add.");
+                    return;
+                }
+                // check if the file exists
+                for (String filename : args) {
+                    if (filename.isEmpty()) {
+                        System.err.println("Empty file name. Ignored.");
+                        continue;
+                    }
+                    File file = new File(filename);
+                    if (!file.exists()) {
+                        System.out.println("File does not exist.");
+                        System.err.println("File does not exist: " + filename);
+                        return;
+                    }
+                }
+                for (String filename : args) {
+                    repo.stageFile(filename);
+                }
+            }
+            case "commit" ->
+                    throw new UnsupportedOperationException("The 'commit' command is not yet implemented.");
+            case "restore" ->
+                    throw new UnsupportedOperationException("The 'restore' command is not yet implemented.");
+            // TODO: FILL THE REST IN
+            case "rm" ->
+                    throw todo;
+            case "log" ->
+                    throw todo;
+            case "global-log" ->
+                    throw todo;
+            case "find" ->
+                    throw todo;
+            case "status" ->
+                    throw todo;
+            case "branch" ->
+                    throw todo;
+            case "switch" ->
+                    throw todo;
+            case "rm-branch" ->
+                    throw todo;
+            case "reset" ->
+                    throw todo;
+            case "merge" ->
+                    throw todo;
+            default ->
+                    System.out.println("No command with that name exists."); // * Per spec, this is the only output on System.out
+            // throw new IllegalStateException("Unexpected value: " + firstArg);
+        }
+    }
+
+    public static void printHelp() {
+        System.out.println("Usage: java gitlet.Main <COMMAND> [<OPERAND1> <OPERAND2> ... | [OPTION]]");
+        System.out.println("Commands:");
+        System.out.println("  init       - Initialize a new Gitlet repository.");
+        System.out.println("  add        - Add files to the staging area.");
+        System.out.println("  commit     - Commit staged files.");
+        System.out.println("  rm         - Remove files from the staging area.");
+        System.out.println("  log        - Show the commit history.");
+        System.out.println("  global-log - Show the global commit history.");
+        System.out.println("  find       - Find commits by message.");
+        System.out.println("  status     - Show the status of the repository.");
+        System.out.println("  branch     - Create a new branch.");
+        System.out.println("  checkout   - Switch branches or restore files.");
+        System.out.println("  reset      - Reset the current branch to a specific commit.");
+        System.out.println("  merge      - Merge another branch into the current branch.");
     }
 }
