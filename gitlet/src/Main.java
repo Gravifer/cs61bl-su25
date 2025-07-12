@@ -39,9 +39,14 @@ public class Main {
             System.out.println("Please enter a command."); // verbatim per spec
             return;
         }
-        // the Repository class cannot stay static after all
-        Repository repo = new Repository();
         String firstArg = args[0];
+        // the Repository class cannot stay static after all
+        Repository repo;
+        if (!firstArg.equals("init")) {
+            repo = Repository.reinstantiate(); // 你需要实现 Repository.loadFromFile 方法
+        } else {
+            repo = new Repository();
+        }
 
         // determine if this function is called from itself
         boolean calledFromSelf = StackWalker.getInstance().walk(frames ->
@@ -60,51 +65,19 @@ public class Main {
         }
     }
 
-    private static void interactiveMode(Repository repo) {
-        // interactiveMode = true;
-        while (true) {
-            // use commands interactively
-            Scanner myObj = new Scanner(System.in);  // Create a Scanner object
-            System.out.println("Supply a command or exit: [init, add, commit, rm, log, global-log, find, status, branch, checkout, reset, merge]");
-            if (myObj.hasNextLine()) {
-                String input = myObj.nextLine();
-                String[] inputArgs = input.split(" ");
-                if (inputArgs.length == 0) {
-                    System.out.println("Please enter a command.");
-                    continue;
-                }
-                String firstArg = inputArgs[0];
-                if (firstArg.equals("exit")) {
-                    System.out.println("Exiting Gitlet.");
-                    return;
-                }
-                if (firstArg.equals("help")) {
-                    printHelp();
-                    continue;
-                }
-                inputArgs = Arrays.copyOfRange(inputArgs, 1, inputArgs.length);
-                try {
-                    cmd(repo, firstArg, inputArgs);
-                } catch (IOException e) {
-                    System.err.println("An error occurred while executing the command: " + e.getMessage());
-                } catch (UnsupportedOperationException e) {
-                    System.err.println(e.getMessage());
-                }
-            }
-        }
-    }
-
-    private static void cmd(Repository repo, String command, String[] args) throws IOException {
+    private static Repository cmd(Repository repo, String command, String[] args) throws IOException {
         UnsupportedOperationException todo = new UnsupportedOperationException(String.format("The '%s' command is not yet implemented.",command));
         switch(command) {
-            case "init" -> // * A Gitlet system is considered "initialized" in a particular location if it has a `.gitlet` directory there.
+            case "init" -> {// * A Gitlet system is considered "initialized" in a particular location if it has a `.gitlet` directory there.
                 Repository.init_db(); // DONE: handle the `init` command
+                repo = Repository.reinstantiate();
+            }
             case "add" -> {
                 // DONE: handle the `add [filename]` command
                 // check the filenames are valid
                 if (args.length == 0) {
                     System.out.println("Please enter a file name to add.");
-                    return;
+                    return repo;
                 }
                 // check if the file exists
                 for (String filename : args) {
@@ -116,15 +89,17 @@ public class Main {
                     if (!file.exists()) {
                         System.out.println("File does not exist.");
                         System.err.println("File does not exist: " + filename);
-                        return;
+                        return repo;
                     }
                 }
                 for (String filename : args) {
                     repo.stageFile(filename);
                 }
             }
-            case "commit" ->
-                    throw new UnsupportedOperationException("The 'commit' command is not yet implemented.");
+            case "commit" ->{
+                String message = args[0]; // other arguments are ignored
+                repo.commit(message);
+            }
             case "restore" ->
                     throw new UnsupportedOperationException("The 'restore' command is not yet implemented.");
             // TODO: FILL THE REST IN
@@ -151,6 +126,41 @@ public class Main {
             default ->
                     System.out.println("No command with that name exists."); // * Per spec, this is the only output on System.out
             // throw new IllegalStateException("Unexpected value: " + firstArg);
+        }
+        return repo;
+    }
+
+    private static void interactiveMode(Repository repo) {
+        // interactiveMode = true;
+        while (true) {
+            // use commands interactively
+            Scanner myObj = new Scanner(System.in);  // Create a Scanner object
+            System.out.println("Supply a command or exit: [init, add, commit, rm, log, global-log, find, status, branch, checkout, reset, merge]");
+            if (myObj.hasNextLine()) {
+                String input = myObj.nextLine();
+                String[] inputArgs = input.split(" ");
+                if (inputArgs.length == 0) {
+                    System.out.println("Please enter a command.");
+                    continue;
+                }
+                String firstArg = inputArgs[0];
+                if (firstArg.equals("exit")) {
+                    System.out.println("Exiting Gitlet.");
+                    return;
+                }
+                if (firstArg.equals("help")) {
+                    printHelp();
+                    continue;
+                }
+                inputArgs = Arrays.copyOfRange(inputArgs, 1, inputArgs.length);
+                try {
+                    repo = cmd(repo, firstArg, inputArgs);
+                } catch (IOException e) {
+                    System.err.println("An error occurred while executing the command: " + e.getMessage());
+                } catch (UnsupportedOperationException e) {
+                    System.err.println(e.getMessage());
+                }
+            }
         }
     }
 

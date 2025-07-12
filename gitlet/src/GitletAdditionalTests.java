@@ -1,4 +1,5 @@
-import gitlet.Commit;
+package gitlet;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -30,6 +31,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static gitlet.Utils.*;
+import static gitlet.Utils.readContentsAsString;
 import static org.junit.Assert.*;
 import static com.google.common.truth.Truth.*;
 
@@ -509,6 +512,46 @@ public class GitletAdditionalTests {
                 """);
     }
 
+    private static class IntrospectRepository extends Repository {
+        public IntrospectRepository() {
+            super();
+        }
+
+        private IntrospectRepository(StagingArea stagingArea) {
+            super(stagingArea);
+        }
+
+        public StagingArea getStagingArea() {
+            return stagingArea;
+        }
+
+        public String getHead() {
+            return HEAD;
+        }
+
+        public static IntrospectRepository reinstantiate() {
+            // * reinstantiate the repository from the current HEAD
+            // * this method should read the HEAD file and restore the repository to that state
+            IntrospectRepository repo;
+            // * load the staging area from the index file
+            if (INDX_FILE.exists()) {
+                repo = new IntrospectRepository(readObject(INDX_FILE, StagingArea.class));
+            } else {
+                repo = new IntrospectRepository();
+            }
+            if (!HEAD_FILE.exists()) {
+                System.err.println("The HEAD file does not exist.");
+                throw error("fatal: not a git repository (or any of the parent directories): .gitlet"); // mimic the behavior of git
+            }
+            repo.HEAD = readContentsAsString(HEAD_FILE);
+            // * load the description from the description file
+            if (DESC_FILE.exists()) {
+                repo.description = readContentsAsString(DESC_FILE);
+            }
+            return repo;
+        }
+    }
+
     @Test
     public void myTest01_init_has_initialCommit() {
         gitletCommand(new String[]{"init"}, "");
@@ -543,6 +586,27 @@ public class GitletAdditionalTests {
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to count files in .gitlet/objects", e);
+        }
+    }
+
+    @Test
+    public void myTest02_commit(){
+        gitletCommand(new String[]{"init"}, "");
+        writeFile(WUG, "wug.txt");
+        gitletCommand(new String[]{"add", "wug.txt"}, "");
+        // assert that HEAD is updated and index is refreshed after commit
+        try {
+            String headOld = Files.readString(Path.of(".gitlet/HEAD")).strip();
+            gitletCommand(new String[]{"commit", "added wug"}, "");
+            IntrospectRepository repo = IntrospectRepository.reinstantiate();
+            // check whether the HEAD file contains the UID of the latest commit
+            String headNew = Files.readString(Path.of(".gitlet/HEAD")).strip();
+            assertNotEquals("HEAD file is not updated", headOld, headNew);
+            assertWithMessage("HEAD file is not updated to the UID of the latest commit").that(repo.getHead()).isEqualTo(headNew);
+            // check whether the index is empty
+            assertWithMessage("staged files should be cleared").that(repo.stagingArea.stagedFiles).isEmpty();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read HEAD file or index", e);
         }
     }
 }
