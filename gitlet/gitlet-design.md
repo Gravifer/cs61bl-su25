@@ -60,3 +60,5 @@ purely a blob of data (ie normally "file contents").
 The following classes are to be persisted in the _object database_,
 aka _object store_, aka `SHA1_FILE_DIRECTORY`, 
 aka `.dircache/`(in Git pre v0.99 terms), aka `.gitlet/`.
+
+## Additional Tests

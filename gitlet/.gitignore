@@ -152,3 +152,5 @@ tramp
 Session.vim
 .netrwhist
 *~
+
+/git.old/.vscode/settings.json
