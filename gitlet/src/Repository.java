@@ -4,7 +4,11 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.Map;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
@@ -307,11 +311,15 @@ public class Repository {
         // * print the commit history
         Commit currentCommit = Commit.getByUid(HEAD);
         Commit initialCommit = Commit.initialCommit();
+        DateTimeFormatter formatter = DateTimeFormatter // Format timestamp as local time with zone
+                .ofPattern("EEE MMM d HH:mm:ss yyyy XX", Locale.US).withZone(ZoneId.systemDefault()); // Local, according to Berkeley
         while (currentCommit != null) {
             System.out.println("===");
-            System.err.println("logging the commit " + currentCommit.getUid());
             System.out.println("commit " + currentCommit.getUid());
-            System.out.println("Date: " + currentCommit.timestamp);
+            // System.out.println("Date: " + currentCommit.timestamp);
+            String formattedDate = formatter.format(currentCommit.timestamp); // Format the timestamp using Instant
+            System.out.println("Date: " + formattedDate);
+
             System.out.println(currentCommit.message);
             System.out.println();
             if (currentCommit.equals(initialCommit)){
