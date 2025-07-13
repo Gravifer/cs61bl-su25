@@ -284,6 +284,9 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
         //     throw error("Object does not exist: " + uid);
         // }
         // return readObject(file, Commit.class);
+        if (uid == initialCommit().getUid()) {
+            return initialCommit(); // return the singleton initial commit
+        }
         return Dumpable.getByUid(uid, Commit.class);
     }
 }

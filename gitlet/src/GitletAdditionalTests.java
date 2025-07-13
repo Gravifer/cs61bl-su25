@@ -525,10 +525,6 @@ public class GitletAdditionalTests {
             return stagingArea;
         }
 
-        public String getHead() {
-            return HEAD;
-        }
-
         public static IntrospectRepository reinstantiate() {
             // * reinstantiate the repository from the current HEAD
             // * this method should read the HEAD file and restore the repository to that state
@@ -543,7 +539,7 @@ public class GitletAdditionalTests {
                 System.err.println("The HEAD file does not exist.");
                 throw error("fatal: not a git repository (or any of the parent directories): .gitlet"); // mimic the behavior of git
             }
-            repo.HEAD = readContentsAsString(HEAD_FILE);
+            repo.HEAD = resolveHead();
             // * load the description from the description file
             if (DESC_FILE.exists()) {
                 repo.description = readContentsAsString(DESC_FILE);
@@ -557,15 +553,15 @@ public class GitletAdditionalTests {
         gitletCommand(new String[]{"init"}, "");
         assertFileExists(".gitlet");
         assertFileExists(".gitlet/HEAD");
-        // assert the HEAD file contains the uid of the initial commit
-        try {
-            assertWithMessage("HEAD file should contain the initial commit UID")
-                .that(Files.readString(Path.of(".gitlet/HEAD")))
-                .isEqualTo(Commit.initialCommit().getUid());
-            assertEquals(Commit.initialCommit().getUid(), Files.readString(Path.of(".gitlet", "HEAD")));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        // check whether the HEAD file contains the ref to the default branch
+        assertWithMessage("HEAD file should contain the ref to the default branch")
+                .that(readContentsAsString(Repository.HEAD_FILE))
+                .isEqualTo("ref: refs/heads/main");
+        // check whether the ref resolves to the UID of the latest commit
+        assertWithMessage("HEAD file should contain the initial commit UID")
+            .that(Repository.resolveHead())
+            .isEqualTo(Commit.initialCommit().getUid());
+        // assertEquals(Commit.initialCommit().getUid(), Files.readString(Path.of(".gitlet", "HEAD")));
     }
 
     @Test
@@ -595,18 +591,18 @@ public class GitletAdditionalTests {
         writeFile(WUG, "wug.txt");
         gitletCommand(new String[]{"add", "wug.txt"}, "");
         // assert that HEAD is updated and index is refreshed after commit
-        try {
-            String headOld = Files.readString(Path.of(".gitlet/HEAD")).strip();
-            gitletCommand(new String[]{"commit", "added wug"}, "");
-            IntrospectRepository repo = IntrospectRepository.reinstantiate();
-            // check whether the HEAD file contains the UID of the latest commit
-            String headNew = Files.readString(Path.of(".gitlet/HEAD")).strip();
-            assertNotEquals("HEAD file is not updated", headOld, headNew);
-            assertWithMessage("HEAD file is not updated to the UID of the latest commit").that(repo.getHead()).isEqualTo(headNew);
-            // check whether the index is empty
-            assertWithMessage("staged files should be cleared").that(repo.stagingArea.stagedFiles).isEmpty();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read HEAD file or index", e);
-        }
+        String headOld= Repository.resolveHead();
+        gitletCommand(new String[]{"commit", "added wug"}, "");
+        IntrospectRepository repo = IntrospectRepository.reinstantiate();
+        // check whether the HEAD file contains the ref to the default branch
+        assertWithMessage("HEAD file should still contain the ref to the default branch")
+            .that(readContentsAsString(Repository.HEAD_FILE))
+            .isEqualTo("ref: refs/heads/main");
+        // check whether the ref resolves to the UID of the latest commit
+        String headNew = Repository.resolveHead();
+        assertNotEquals("HEAD pointer is not updated", headOld, headNew);
+        assertWithMessage("HEAD pointer is not updated to the UID of the latest commit").that(repo.getHead()).isEqualTo(headNew);
+        // check whether the index is empty
+        assertWithMessage("staged files should be cleared").that(repo.getStagingArea().stagedFiles).isEmpty();
     }
 }

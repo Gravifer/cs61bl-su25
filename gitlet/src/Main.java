@@ -97,11 +97,11 @@ public class Main {
                     repo.stageFile(filename);
                 }
             }
-            case "commit" ->{
+            case "commit" -> {
                 String message = args[0]; // other arguments are ignored
                 repo.commit(message);
             }
-            case "restore" ->{
+            case "restore" -> {
                 if (args[0].equals("--")) {
                     // restore files from HEAD
                     if (args.length < 2) {
@@ -109,7 +109,7 @@ public class Main {
                         return repo;
                     }
                     for (String filename : Arrays.copyOfRange(args, 1, args.length)) {
-                        repo.restoreFile(repo.HEAD, filename);
+                        repo.restoreFile(filename);
                     }
                 } else if (args.length > 1 && args[1].equals("--")) {
                     // restore files from specified commit
@@ -125,7 +125,7 @@ public class Main {
                     return repo;
                 }
             }
-            // TODO: FILL THE REST IN
+            // DONE: FILL THE REST IN
             case "rm" ->
                     throw todo;
             case "log" ->
@@ -135,7 +135,7 @@ public class Main {
             case "find" ->
                     throw todo;
             case "status" ->
-                    throw todo;
+                repo.status();
             case "branch" ->
                     throw todo;
             case "switch" ->
