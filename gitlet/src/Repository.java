@@ -270,7 +270,8 @@ public class Repository {
      *  This method restores a file to the working directory from the current commit
      *  or removes it from the staging area if it is staged for addition.
      *
-     *  @param filename the name of the file to restore
+     *  @param commitPrefix the commit prefix to restore from, or HEAD if null
+     *  @param filename     the name of the file to restore
      *
      *  @implSpec Takes the version of the file as it exists in the head commit and puts it in the working directory,
      *  overwriting the version of the file that’s already there if there is one. The new version of the file is not staged.
@@ -282,6 +283,10 @@ public class Repository {
         if (filename == null || filename.isBlank()) {
             System.out.println("Please enter a file name.");
             return;
+        }
+        if (commitPrefix == null || commitPrefix.isBlank()) {
+            System.err.println("restore: commitPrefix is null or empty, using HEAD as default.");
+            commitPrefix = HEAD; // if no commit prefix is provided, use HEAD
         }
         Commit currentCommit = Commit.getByUid(commitPrefix);
         if (!currentCommit.getFileBlobs().containsKey(filename)) {
@@ -302,6 +307,17 @@ public class Repository {
         restoreFile(HEAD, filename);
     }
 
+    /** Logs the commit history of the repository.
+     *  <p>
+     *  This method prints the commit history starting from the current HEAD commit
+     *  and going back to the initial commit.
+     *  It formats the timestamp as local time with zone.
+     *  @implSpec Starting at the current head commit, display information
+     *  about each commit backwards along the commit tree until the initial commit,
+     *  following the first parent commit links, ignoring any second parents found in merge commits.
+     *  This set of commit nodes is called the commit’s history. For every node in this history,
+     *  the information it should display is the commit id, the time the commit was made, and the commit message.
+     */
     public void log() {
         // * print the commit history
         Commit currentCommit = Commit.getByUid(HEAD);
