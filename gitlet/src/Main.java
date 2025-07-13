@@ -5,6 +5,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Scanner;
 
 // import static jdk.internal.reflect.Reflection.getCallerClass; // ! Package 'jdk.internal.reflect' is declared in module 'java.base', but the latter does not export it to the unnamed module.
@@ -100,8 +101,22 @@ public class Main {
                 String message = args[0]; // other arguments are ignored
                 repo.commit(message);
             }
-            case "restore" ->
-                    throw new UnsupportedOperationException("The 'restore' command is not yet implemented.");
+            case "restore" ->{
+                if (args[0].equals("--")) {
+                    // restore files from the staging area
+                    if (args.length < 2) {
+                        System.out.println("Please specify a file to restore.");
+                        return repo;
+                    }
+                    for (String filename : Arrays.copyOfRange(args, 1, args.length)) {
+                        repo.restoreFile(filename);
+                    }
+                } else {
+                    // switch branches
+                    // repo.checkoutBranch(args[0]);
+                    throw todo;
+                }
+            }
             // TODO: FILL THE REST IN
             case "rm" ->
                     throw todo;

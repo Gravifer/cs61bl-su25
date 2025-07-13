@@ -23,31 +23,50 @@ interface Dumpable extends Serializable {
     }
     String getDumpType();
 
-    default void persist() {
-        String uid = getUid();
+    static File persistFile(String uid) {
         // shard using the first two characters of the UID
         String shard = uid.substring(0, 2);
         String fileName = uid.substring(2);
         // create the directory structure
         File shardDir = join(Repository.OBJ_DIR, shard);
         File file = join(shardDir, fileName);
-        // if already exists, do nothing, since the UID is unlikely to clash
-        // If the file already exists, do nothing
-        if (file.exists()) return;
+        // if already exists, return the file
+        if (file.exists()) return file;
 
         // Create directories if they don't exist
         if (!shardDir.exists() && !shardDir.mkdirs()){
             throw new RuntimeException("Failed to create directory: " + shardDir.getAbsolutePath());
         }
 
-        // Create file and write object
+        // Create the file if not existing
         try {
             if (!file.createNewFile()) {
                 throw new RuntimeException("Failed to create file: " + file.getAbsolutePath());
             }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to persist object: " + e.getMessage(), e);
+        }
+        return file;
+    }
+
+    default void persist() {
+        String uid = getUid();
+        File file = persistFile(uid);
+
+        // Open the file and write the object
+        try {
             writeObject(file, this);
         } catch (Exception e) {
             throw new RuntimeException("Failed to persist object: " + e.getMessage(), e);
         }
+    }
+
+    public static <T extends Serializable> T getByUid(String uid, Class<T> type) {
+        // * get the commit from the object database
+        File file = Dumpable.persistFile(uid);
+        if (!file.exists()) {
+            throw error("Object does not exist: " + uid);
+        }
+        return readObject(file, type);
     }
 }

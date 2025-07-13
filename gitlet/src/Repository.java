@@ -235,6 +235,14 @@ public class Repository {
      *  Of course, the date (and likely the message) will also differ from the parent.
      */
     public void commit(String message) {
+        if (message == null || message.isBlank()) {
+            System.out.println("Please enter a commit message.");
+            return;
+        }
+        if (stagingArea.stagedFiles.isEmpty()) {
+            System.out.println("No changes added to the commit.");
+            return;
+        }
         // * create a new commit with the staged files and the given commit message
         Commit newCommit = new Commit(message, HEAD, stagingArea.getStagedFileBlobs(), true); // per spec, empty commits are the default
         // * update the HEAD pointer to point to the new commit
@@ -247,5 +255,47 @@ public class Repository {
         // * clear the staging area
         stagingArea.stagedFiles.clear();
         writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+    }
+
+    /** Restores a file from the current commit or the staging area.
+     *  <p>
+     *  This method restores a file to the working directory from the current commit
+     *  or removes it from the staging area if it is staged for addition.
+     *
+     *  @param filename the name of the file to restore
+     *
+     *  @implSpec Takes the version of the file as it exists in the head commit and puts it in the working directory,
+     *  overwriting the version of the file that’s already there if there is one. The new version of the file is not staged.
+     *  If the file does not exist in the previous commit, abort,
+     *  printing the error message {@code File does not exist in that commit.} Do not change the CWD.
+     */
+    public void restoreFile(String filename) {
+        // * restore a file from the current commit
+        if (filename == null || filename.isBlank()) {
+            System.out.println("Please enter a file name.");
+            return;
+        }
+        // // * check if the file is staged for addition
+        // if (stagingArea.stagedFiles.containsKey(filename)) {
+        //     stagingArea.stagedFiles.remove(filename); // remove it from the staging area
+        //     writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+        //     System.err.println("File " + filename + " has been restored from the staging area.");
+        //     return;
+        // }
+        // * check if the file is tracked in the current commit
+        Commit currentCommit = Commit.getByUid(HEAD);
+        if (!currentCommit.getFileBlobs().containsKey(filename)) {
+            System.out.println("File does not exist in that commit.");
+            return;
+        }
+        Blob blob = Blob.getByUid(currentCommit.getFileBlobs().get(filename));
+        if (blob == null) {
+            System.out.println("File does not exist in that commit.");
+            return;
+        }
+        // * restore the file to the working directory
+        File file = join(CWD, filename);
+        writeContents(file, blob.getContents());
+        System.err.println("File " + filename + " has been restored to the working directory.");
     }
 }

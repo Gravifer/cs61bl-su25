@@ -84,10 +84,12 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
             throw error("Nothing to commit.");
         }
         this.parents = new String[]{parent};
+        File parentFile = Dumpable.persistFile(parent);
+        Commit parentCommit = readObject(parentFile, Commit.class);
         this.timestamp = new Date(); // use current time
         this.authorTimestamp = timestamp;
         this.message = message;
-        this.fileBlobs = new HashMap<>();
+        this.fileBlobs = parentCommit.fileBlobs == null ? new HashMap<>() : new HashMap<>(parentCommit.fileBlobs);
         // * initialize fileBlobs with the contents of the files
         // * we skipped the process of staging the files first, so that selective commiting becomes possible
         if (files != null) {
@@ -172,6 +174,10 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
     public boolean isInitialCommit() {
         // * the initial commit is a singleton, so we can check if it is the same instance
         return this.getUid().equals(initialCommit().getUid()) && this.parents.length == 0;
+    }
+
+    public Map<String, String> getFileBlobs() {
+        return this.fileBlobs;
     }
 
     /**
@@ -260,5 +266,15 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
     @Override
     public String getDumpType() {
         return "commit";
+    }
+
+    public static Commit getByUid(String uid) {
+        // // * get the commit from the object database
+        // File file = Dumpable.persistFile(uid);
+        // if (!file.exists()) {
+        //     throw error("Object does not exist: " + uid);
+        // }
+        // return readObject(file, Commit.class);
+        return Dumpable.getByUid(uid, Commit.class);
     }
 }

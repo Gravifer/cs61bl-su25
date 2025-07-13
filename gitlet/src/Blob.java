@@ -94,4 +94,8 @@ public class Blob implements Serializable, Dumpable {
     public String getDumpType() {
         return "blob";
     }
+
+    public static Blob getByUid(String uid) {
+        return Dumpable.getByUid(uid, Blob.class);
+    }
 }

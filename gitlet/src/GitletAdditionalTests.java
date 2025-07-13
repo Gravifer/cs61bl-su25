@@ -590,7 +590,7 @@ public class GitletAdditionalTests {
     }
 
     @Test
-    public void myTest02_commit(){
+    public void myTest03_commit(){
         gitletCommand(new String[]{"init"}, "");
         writeFile(WUG, "wug.txt");
         gitletCommand(new String[]{"add", "wug.txt"}, "");
