@@ -121,7 +121,7 @@ public class Main {
             case "rm" ->
                     throw todo;
             case "log" ->
-                    throw todo;
+                repo.log();
             case "global-log" ->
                     throw todo;
             case "find" ->

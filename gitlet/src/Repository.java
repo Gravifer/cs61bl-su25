@@ -4,6 +4,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
@@ -252,6 +253,9 @@ public class Repository {
         } catch (IOException e) {
             throw error("Unable to write to HEAD file: " + e.getMessage());
         }
+        // Per spec, no output on System.out, but we print the commit briefing to stderr
+        System.err.println("[" + HEAD.substring(0, 7) + "] " + message);
+        System.err.println(newCommit.getFileBlobs().size() + " files changed"); // summarize the changes
         // * clear the staging area
         stagingArea.stagedFiles.clear();
         writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
@@ -297,5 +301,29 @@ public class Repository {
         File file = join(CWD, filename);
         writeContents(file, blob.getContents());
         System.err.println("File " + filename + " has been restored to the working directory.");
+    }
+
+    public void log() {
+        // * print the commit history
+        Commit currentCommit = Commit.getByUid(HEAD);
+        Commit initialCommit = Commit.initialCommit();
+        while (currentCommit != null) {
+            System.out.println("===");
+            System.err.println("logging the commit " + currentCommit.getUid());
+            System.out.println("commit " + currentCommit.getUid());
+            System.out.println("Date: " + currentCommit.timestamp);
+            System.out.println(currentCommit.message);
+            System.out.println();
+            if (currentCommit.equals(initialCommit)){
+                break; // reached the initial commit, stop logging
+            }
+            // currentCommit = (currentCommit.parents[0] == initialCommit.getUid())?
+            //         initialCommit : Commit.getByUid(currentCommit.parents[0]);
+            if (currentCommit.parents[0].equals(initialCommit.getUid())) {
+                currentCommit = initialCommit;
+            } else {
+                currentCommit = Commit.getByUid(currentCommit.parents[0]);
+            }
+        }
     }
 }
