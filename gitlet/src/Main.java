@@ -103,18 +103,26 @@ public class Main {
             }
             case "restore" ->{
                 if (args[0].equals("--")) {
-                    // restore files from the staging area
+                    // restore files from HEAD
                     if (args.length < 2) {
                         System.out.println("Please specify a file to restore.");
                         return repo;
                     }
                     for (String filename : Arrays.copyOfRange(args, 1, args.length)) {
-                        repo.restoreFile(filename);
+                        repo.restoreFile(repo.HEAD, filename);
+                    }
+                } else if (args.length > 1 && args[1].equals("--")) {
+                    // restore files from specified commit
+                    if (args.length < 3) {
+                        System.out.println("Please specify a file to restore.");
+                        return repo;
+                    }
+                    for (String filename : Arrays.copyOfRange(args, 2, args.length)) {
+                        repo.restoreFile(args[0], filename);
                     }
                 } else {
-                    // switch branches
-                    // repo.checkoutBranch(args[0]);
-                    throw todo;
+                    System.out.println("Invalid restore command. Use 'restore -- <file>' or 'restore <commit> -- <file>'.");
+                    return repo;
                 }
             }
             // TODO: FILL THE REST IN

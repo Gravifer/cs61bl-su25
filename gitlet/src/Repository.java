@@ -277,21 +277,13 @@ public class Repository {
      *  If the file does not exist in the previous commit, abort,
      *  printing the error message {@code File does not exist in that commit.} Do not change the CWD.
      */
-    public void restoreFile(String filename) {
+    public void restoreFile(String commitPrefix, String filename) {
         // * restore a file from the current commit
         if (filename == null || filename.isBlank()) {
             System.out.println("Please enter a file name.");
             return;
         }
-        // // * check if the file is staged for addition
-        // if (stagingArea.stagedFiles.containsKey(filename)) {
-        //     stagingArea.stagedFiles.remove(filename); // remove it from the staging area
-        //     writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
-        //     System.err.println("File " + filename + " has been restored from the staging area.");
-        //     return;
-        // }
-        // * check if the file is tracked in the current commit
-        Commit currentCommit = Commit.getByUid(HEAD);
+        Commit currentCommit = Commit.getByUid(commitPrefix);
         if (!currentCommit.getFileBlobs().containsKey(filename)) {
             System.out.println("File does not exist in that commit.");
             return;
@@ -305,6 +297,9 @@ public class Repository {
         File file = join(CWD, filename);
         writeContents(file, blob.getContents());
         System.err.println("File " + filename + " has been restored to the working directory.");
+    }
+    public void restoreFile(String filename) {
+        restoreFile(HEAD, filename);
     }
 
     public void log() {
