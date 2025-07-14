@@ -2,7 +2,6 @@ package gitlet;
 
 
 // DONE: any imports you need here
-
 import java.io.File;
 import java.io.Serializable;
 import java.util.*;
@@ -12,8 +11,23 @@ import static gitlet.Utils.*;
 
 /**
  * Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+ *
+ *  <blockquote>DONE: It's a good idea to give a description here of what else this Class
+ *  does at a high level.</blockquote>
+ *  <p>
+ *  This class encapsulates the properties and behaviors of a commit in the gitlet version control system.
+ *  It includes the commit message, timestamp, parent commits, and the files associated with the commit.
+ *  Commits are immutable and uniquely identified by their UID, which is generated based on their attributes.
+ *  Commits can be created with a message, parent commit, and a list of files to be included in the commit.
+ *  The class provides methods to access parent commits, retrieve file blobs, and compare commits.
+ *  It also implements the Comparable interface to allow sorting of commits based on their relationships
+ *  (ancestor, descendant, or co-linear).
+ *  <p>
+ *
+ * @implNote This map is always initialized in the constructor for new objects,
+ * but since it is transient, it will be null after deserialization. Therefore,
+ * all accessors (such as getParentCommit) will lazily rebuild it if needed.
+ * This ensures correctness and performance for both new and deserialized objects.
  *
  * @author Gravifer
  */
@@ -46,6 +60,51 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
      * For merge commits, this array can have more than one parent.
      */
     protected final String[] parents;
+
+    /**
+     * Lazily loaded transient map for parent commits.
+     * Not serialized; rebuilt on demand after deserialization.
+     *
+     * <p>
+     * @implNote: This map is always initialized in the constructor for new objects,
+     * but since it is transient, it will be null after deserialization. Therefore,
+     * all accessors (such as getParentCommit) will lazily rebuild it if needed.
+     * This ensures correctness and performance for both new and deserialized objects.
+     *
+     * <p>
+     * The parent commit objects are cached in this map, keyed by their UID.
+     * This avoids repeated deserialization and lookup for parent commits.
+     */
+    transient Map<String, Commit> parentsMap;
+
+    /**
+     * Lazily initialize parentsMap if needed.
+     * Called by all parent commit accessors to ensure the cache is available.
+     * This is necessary because transient fields are not restored after deserialization.
+     */
+    private void initParentsMap() { // transient, need to rebuild on demand after deserialization, although forced at initialization
+        if (parentsMap == null) {
+            parentsMap = new HashMap<>();
+            for (String parent : parents) {
+                parentsMap.put(parent, Commit.getByUid(parent));  // getByUid guarantees to return the identical initial commit.
+            }
+        }
+    }
+
+    /**
+     * Get the parent commit by index, lazily loading parentsMap if needed.
+     */
+    public Commit getParentCommit(int idx) {
+        initParentsMap();
+        if (idx < 0 || idx >= parents.length) return null;
+        return parentsMap.get(parents[idx]);
+    }
+    /**
+     * Get the first parent commit (default).
+     */
+    public Commit getParentCommit() {
+        return getParentCommit(0);
+    }
 
     /**
      * The timestamp of this Commit.
@@ -85,13 +144,15 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
             throw error("Nothing to commit.");
         }
         this.parents = new String[]{parent};
-        Commit parentCommit = Commit.getByUid(parent);
+        initParentsMap();
+        Commit parentCommit = getParentCommit();  // Commit.getByUid() checks if the parent commit is initial, so no need to check here
         this.timestamp = Instant.now(); // use current time
         this.authorTimestamp = timestamp;
         this.message = message;
         // this.fileBlobs = parentCommit.fileBlobs == null ? new LinkedHashMap<>() : new LinkedHashMap<>(parentCommit.fileBlobs);
         this.fileBlobs = new LinkedHashMap<>();
-        if (!parentCommit.equals(Commit.initialCommit()) && parentCommit.fileBlobs != null) {
+        // Always use putAll for clarity, even if parentCommit.fileBlobs is empty
+        if (parentCommit != null && parentCommit.fileBlobs != null) {
             this.fileBlobs.putAll(parentCommit.fileBlobs);
         }
         // * initialize fileBlobs with the contents of the files
@@ -129,12 +190,16 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
             throw error("Nothing to commit.");
         }
         this.parents = new String[]{parent};
-        Commit parentCommit = Commit.getByUid(parent);
+        initParentsMap();
+        Commit parentCommit = getParentCommit(); // Commit.getByUid() checks if the parent commit is initial, so no need to check here
         this.timestamp = Instant.now(); // use current time
         this.authorTimestamp = timestamp;
         this.message = message;
-
-        this.fileBlobs = parentCommit.fileBlobs == null ? new LinkedHashMap<>() : new LinkedHashMap<>(parentCommit.fileBlobs);
+        this.fileBlobs = new LinkedHashMap<>();
+        // Always use putAll for clarity, even if parentCommit.fileBlobs is empty
+        if (parentCommit != null && parentCommit.fileBlobs != null) {
+            this.fileBlobs.putAll(parentCommit.fileBlobs);
+        }
         // * merge the fileBlobsToAdd with the parent commit's fileBlobs
         if (fileBlobsToAdd != null) {
             this.fileBlobs.putAll(fileBlobsToAdd);
@@ -300,5 +365,23 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
             return initialCommit(); // return the singleton initial commit
         }
         return Dumpable.getByUid(uid, Commit.class);
+    }
+
+    @Override
+    public String getUid() {
+        // 只用核心字段计算UID，保证持久化和反序列化一致
+        StringBuilder sb = new StringBuilder();
+        sb.append(getDumpType()).append("\0");
+        sb.append(message).append("\0");
+        sb.append(timestamp.toString()).append("\0");
+        sb.append(authorTimestamp.toString()).append("\0");
+        for (String parent : parents) {
+            sb.append(parent).append("\0");
+        }
+        // fileBlobs 按 key 排序，保证顺序一致
+        fileBlobs.keySet().stream().sorted().forEach(key -> {
+            sb.append(key).append(":").append(fileBlobs.get(key)).append("\0");
+        });
+        return sha1(sb.toString());
     }
 }
