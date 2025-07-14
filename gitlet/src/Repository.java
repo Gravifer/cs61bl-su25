@@ -76,6 +76,11 @@ public class Repository {
         }
         return HeadCommit;
     }
+    public Commit getBranchCommit(String branch) {
+        String commitUid = resolveHead(BRC_DIR.resolve(branch));
+        // System.err.println("Resolving head commit for branch: " + branch + " -> " + commitUid);
+        return Commit.getByUid(commitUid);
+    }
     public static String resolveHead(Path file) {
         if (!Files.exists(file)) {
             throw error("HEAD file does not exist.");
@@ -673,32 +678,51 @@ public class Repository {
      *  This set of commit nodes is called the commit’s history. For every node in this history,
      *  the information it should display is the commit id, the time the commit was made, and the commit message.
      */
-    public void log() {
+    public void log(Commit[] commits) {
         // * print the commit history
-        Commit currentCommit = getHeadCommit(); // Use cached HEAD commit
-        Commit initialCommit = Commit.initialCommit();
         DateTimeFormatter formatter = DateTimeFormatter // Format timestamp as local time with zone
                 .ofPattern("EEE MMM d HH:mm:ss yyyy XX", Locale.US).withZone(ZoneId.systemDefault()); // Local, according to Berkeley
-        while (currentCommit != null) {
-            System.out.println("===");
-            System.out.println("commit " + currentCommit.getUid());
-            // System.out.println("Date: " + currentCommit.timestamp);
-            String formattedDate = formatter.format(currentCommit.timestamp); // Format the timestamp using Instant
-            System.out.println("Date: " + formattedDate);
+        for (Commit commit : commits) {
+            commit.logCommit(formatter); // Print commit info
+        }
+    }
+    public void log() {
+        // * log the commit history starting from the current HEAD commit
+        Commit[] heads = {getHeadCommit()};
+        log(getCommitHistory(heads));
+    }
 
-            System.out.println(currentCommit.message);
-            System.out.println();
-            if (currentCommit.equals(initialCommit)){
-                break; // reached the initial commit, stop logging
-            }
-            // currentCommit = (currentCommit.parents[0] == initialCommit.getUid())?
-            //         initialCommit : Commit.getByUid(currentCommit.parents[0]);
-            if (currentCommit.parents[0].equals(initialCommit.getUid())) {
-                currentCommit = initialCommit;
-            } else {
-                currentCommit = Commit.getByUid(currentCommit.parents[0]);
+    /** Gets the commit history starting from the given heads.
+     *  <p>
+     *  This method retrieves the commit history starting from the given heads
+     *  and going back to the initial commit.
+     *
+     *  @param heads an array of head commits to start the history from
+     *  @return an array of Commit objects representing the commit history, sorted by commit time, from newest to oldest
+     */
+    public Commit[] getCommitHistory(Commit[] heads) {
+        // * get the commit history starting from the given heads
+        // * and going back to the initial commit
+        if (heads == null || heads.length == 0) {
+            return new Commit[0]; // no heads, return empty array
+        }
+        Set<Commit> historySet = new HashSet<>();
+        for (Commit head : heads) {
+            Commit currentCommit = head;
+            while (currentCommit != null && !historySet.contains(currentCommit)) {
+                historySet.add(currentCommit);
+                if (currentCommit.isInitialCommit() || currentCommit.parents == null || currentCommit.parents.length == 0) {
+                    // * if the commit has no parents, it is the initial commit
+                    break; // stop at the initial commit
+                }
+                if (currentCommit.parents[0].equals(Commit.initialCommit().getUid())) {
+                    currentCommit = Commit.initialCommit();
+                } else {
+                    currentCommit = Commit.getByUid(currentCommit.parents[0]);
+                }
             }
         }
+        return historySet.stream().sorted(Comparator.comparingLong(Commit::getTime).reversed()).toArray(Commit[]::new);
     }
 
     public String currentBranch() {

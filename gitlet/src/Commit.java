@@ -4,6 +4,8 @@ package gitlet;
 // DONE: any imports you need here
 import java.io.File;
 import java.io.Serializable;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.time.Instant; // * no need for this, Date is sufficient
 
@@ -381,5 +383,47 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
         // * sort the fileBlobs by key to ensure consistent order
         fileBlobs.keySet().stream().sorted().forEach(key -> sb.append(key).append(":").append(fileBlobs.get(key)).append("\0"));
         return sha1(sb.toString());
+    }
+
+    public void logCommit(DateTimeFormatter formatter) {
+        System.out.println("===");
+        System.out.println("commit " + getUid());
+        // System.out.println("Date: " + currentCommit.timestamp);
+        String formattedDate = formatter.format(timestamp); // Format the timestamp using Instant
+        System.out.println("Date: " + formattedDate);
+        System.out.println(message);
+        System.out.println();
+
+        // System.err.println("===");
+        // System.err.println("Commit UID: " + getUid());
+        // System.err.println("Message: " + message);
+        // System.err.println("Timestamp: " + timestamp);
+        // System.err.println("Author Timestamp: " + authorTimestamp);
+        // System.err.println("Parents: " + String.join(", ", parents));
+        // if (fileBlobs.isEmpty()) {
+        //     System.err.println("No files in this commit.");
+        // } else {
+        //     System.err.println("Files in this commit:");
+        //     for (Map.Entry<String, String> entry : fileBlobs.entrySet()) {
+        //         System.err.printf("  %s -> %s%n", entry.getKey(), entry.getValue());
+        //     }
+        // }
+        // System.err.println();
+        System.err.println(message + " (" + getUid() + ")");
+    }
+    public void logCommit(){
+        // Use a default formatter if none is provided
+        DateTimeFormatter formatter = DateTimeFormatter // Format timestamp as local time with zone
+                .ofPattern("EEE MMM d HH:mm:ss yyyy XX", Locale.US).withZone(ZoneId.systemDefault()); // Local, according to Berkeley
+        logCommit(formatter);
+    }
+
+    public static long getTime(Object o) {
+        return switch (o) {
+            case Commit commit -> commit.timestamp.toEpochMilli();
+            case Instant instant -> instant.toEpochMilli();
+            case Date date -> date.getTime();
+            default -> throw new IllegalArgumentException("Unsupported type for getTime: " + o.getClass().getName());
+        };
     }
 }

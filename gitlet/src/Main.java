@@ -74,7 +74,7 @@ public class Main {
                 repo = Repository.reinstantiate();
                 if (repo != null) {
                     System.err.println("Initialized repolet with default branch: " + repo.defaultBranch);
-                    System.err.println("\t      -> " + Repository.resolveHead(join(Repository.BRC_DIR, repo.defaultBranch)));
+                    System.err.println("\t      -> " + repo.getBranchCommit(repo.defaultBranch).getUid()); // Repository.resolveHead(join(Repository.BRC_DIR, repo.defaultBranch)));
                     System.err.println("\t HEAD -> " + repo.HEAD);
                 } else {
                     System.out.println("Failed to initialize Gitlet repository.");
@@ -160,10 +160,15 @@ public class Main {
                     repo.removeFile(filename);
                 }
             }
-            case "log" ->
+            case "log" -> {
+                // Commit[] heads = (Commit[]) Arrays.stream(repo.getBranches()).map(branch -> Repository.resolveHead(Repository.BRC_DIR.resolve(branch))).toArray();
+                // Commit[] heads = Arrays.stream(repo.getBranches()).map(repo::getBranchCommit).toArray(Commit[]::new);
                 repo.log();
-            case "global-log" -> // like log but shows all commits in the repository, not just the current branch
-                    throw todo;
+            }
+            case "global-log" -> {// like log but shows all commits in the repository, not just the current branch, not even all reachable commits.
+                Commit[] heads = Arrays.stream(repo.getBranches()).map(repo::getBranchCommit).toArray(Commit[]::new);
+                repo.log(repo.getCommitHistory(heads));
+            }
             case "find" ->
                     throw todo;
             case "status" -> {
@@ -189,7 +194,7 @@ public class Main {
                             }
                             System.out.print(branch + "\t");
                             // get the commit UID of the branch from the branch file
-                            System.out.print(Repository.resolveHead(join(Repository.BRC_DIR, branch)));
+                            System.out.print(repo.getBranchCommit(branch));
                         }
                     }
                     return repo;
@@ -214,7 +219,7 @@ public class Main {
                 String newBranchName = args[0];
                 repo.createBranch(newBranchName);
                 System.err.println("Created a new branch: " + newBranchName);
-                System.err.println("\t      -> " + Repository.resolveHead(join(Repository.BRC_DIR, newBranchName)));
+                System.err.println("\t      -> " + repo.getBranchCommit(newBranchName));
             }
             case "switch" -> {
                 if (args.length == 0 || args[0].isBlank()) {
