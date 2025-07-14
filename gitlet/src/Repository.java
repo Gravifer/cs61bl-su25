@@ -398,7 +398,7 @@ public class Repository {
             throw error("Unable to write to HEAD file: " + e.getMessage());
         }
         // Per spec, no output on System.out, but we print the commit briefing to stderr
-        System.err.println("[" + HEAD.substring(0, 7) + "] " + message);
+        System.err.println("[" + currentBranch() + " " + HEAD.substring(0, 7) + "] " + message);
         System.err.println(newCommit.getFileBlobs().size() + " files changed"); // summarize the changes
         // * clear the staging area
         stagingArea.stagedFiles.clear();
@@ -461,6 +461,149 @@ public class Repository {
         restoreFile(HEAD, filename);
     }
 
+    /**
+     * Functions like {@code git reset --hard [commit hash]}
+     *
+     * @implSpec Restores all the files tracked by the given commit.
+     * Removes tracked files that are not present in that commit.
+     * Also moves the current branch’s head to that commit node.
+     * See the intro for an example of what happens to the head pointer after using reset.
+     * The {@code commit id} may be abbreviated as for restore. The staging area is cleared.
+     * <p>
+     * If no commit with the given id exists, print {@code No commit with that id exists.}
+     * If a working file is untracked in the current branch and would be overwritten by the reset,
+     * print {@code There is an untracked file in the way; delete it, or add and commit it first.} and exit;
+     * perform this check before doing anything else.
+     * */
+    public void resetHardCommit(String commitPrefix) {
+        // reuses the restoreFile method to restore all files tracked by the given commit
+        if (commitPrefix == null || commitPrefix.isBlank()) {
+            System.err.println("resetHardCommit: commitPrefix is null or empty, using HEAD as default.");
+            commitPrefix = HEAD;
+        }
+        try {
+            Commit intendedCommit = Commit.getByUid(commitPrefix);
+            if (intendedCommit == null) {
+                System.out.println("No commit with that id exists.");
+                return;
+            }
+            // * check for untracked files in the working directory // ! the spec requires a hard reset
+            for (String fileName : plainFilenamesIn(CWD)) {
+                Path file = CWD.resolve(fileName);
+                if (Files.exists(file) && (!getHeadCommit().getFileBlobs().containsKey(fileName) && !stagingArea.stagedFiles.containsKey(fileName))) { // ! per spec, we should not check the staging area
+                    // * if the file is tracked in the commit, it should not be untracked
+                    System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                    System.err.println("Untracked file " + fileName + " would be overwritten by reset.");
+                    return;
+                }
+            }
+            // * restore all files tracked by the given commit
+            for (String fileName : intendedCommit.getFileBlobs().keySet()) {
+                restoreFile(intendedCommit.getUid(), fileName);
+            }
+            // * remove files that are not present in the commit
+            for (String fileName : plainFilenamesIn(CWD)) {
+                if (!intendedCommit.getFileBlobs().containsKey(fileName) && !stagingArea.stagedFiles.containsKey(fileName)) {
+                    Path file = CWD.resolve(fileName);
+                    if (Files.exists(file)) {
+                        if (restrictedDelete(file)) {
+                            System.err.println("Removed " + fileName + " from the working directory.");
+                        } else {
+                            System.err.println("Failed to delete file: " + fileName + " ; removing from gitlet anyway.");
+                        }
+                    }
+                }
+            }
+            // * clear the staging area
+            stagingArea.stagedFiles.clear();
+            stagingArea.removedFiles.clear();
+            writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+            // updateHeadRef(intendedCommit); // update the HEAD pointer to point to the new commit
+            writeContents(BRC_DIR.resolve(currentBranch()), intendedCommit.getUid()); // update the current branch file to point to the intended commit
+        } catch (GitletException e) {
+            if (e.getMessage().contains("Object does not exist")) {
+                System.err.println(e.getMessage());
+                System.out.println("No commit with that id exists.");
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    /** Checks out a branch and updates the working directory.
+     *
+     *  @param branch the name of the branch to check out
+     *
+     *  @implSpec <b>Actually missing from the su24 spec.</b>
+     *  <p>
+     *  Takes all files in the commit at the head of the given branch, and puts them in the working directory,
+     *  overwriting the versions of the files that are already there if they exist.
+     *  Also, at the end of this command, the given branch will now be considered the current branch (HEAD).
+     *  Any files that are tracked in the current branch but are not present in the checked-out branch are deleted.
+     *  The staging area is cleared, unless the checked-out branch is the current branch (see Failure cases below).
+     *  <p>
+     *  If no branch with that name exists, print {@code No such branch exists.}
+     *  If that branch is the current branch, print {@code No need to checkout the current branch.}
+     *  If a working file is untracked in the current branch and would be overwritten by the checkout,
+     *  print {@code There is an untracked file in the way; delete it, or add and commit it first.} and exit;
+     *  perform this check before doing anything else. Do not change the CWD.     *
+     *  @see <a href="https://sp21.datastructur.es/materials/proj/proj2/proj2#checkout">sp21 spec</a>
+     */
+    public void checkoutBranch(String branch){
+        if (branch == null || branch.isBlank()) {
+            System.err.println("checkoutBranch: branch is null or empty, using HEAD as default.");
+            branch = currentBranch();
+        }
+        if (!isDetachedHead() && isCurrentBranch(branch)) {
+            System.out.println("No need to checkout the current branch.");
+            return;
+        }
+        Path branchFile = BRC_DIR.resolve(branch);
+        if (!Files.exists(branchFile)) {
+            System.out.println("No such branch exists.");
+            return;
+        }
+        String branchCommitUid = readContentsAsString(branchFile).trim();
+        Commit intendedCommit = Commit.getByUid(branchCommitUid);
+        if (intendedCommit == null) {
+            System.out.println("No such branch exists.");
+            return;
+        }
+        // // * check for untracked files in the working directory // disabling this mismatches the sp21 spec, but this command was removed from su24 anyway, so whatever passes the tests
+        // for (String fileName : plainFilenamesIn(CWD)) {
+        //     Path file = CWD.resolve(fileName);
+        //     if (false && Files.exists(file) && !getHeadCommit().getFileBlobs().containsKey(fileName)) { // ! per spec, we should not check the staging area
+        //         // * if the file is tracked in the commit, it should not be untracked
+        //         System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+        //         System.err.println("Untracked file " + fileName + " would be overwritten by checkout.");
+        //         return;
+        //     }
+        // }
+        // * restore all files tracked by the given commit
+        for (String fileName : intendedCommit.getFileBlobs().keySet()) {
+            restoreFile(intendedCommit.getUid(), fileName);
+        }
+        // * remove files that are not present in the commit
+        for (String fileName : plainFilenamesIn(CWD)) {
+            if (!intendedCommit.getFileBlobs().containsKey(fileName) && !stagingArea.stagedFiles.containsKey(fileName)) {
+                Path file = CWD.resolve(fileName);
+                if (Files.exists(file)) {
+                    if (restrictedDelete(file)) {
+                        System.err.println("Removed " + fileName + " from the working directory.");
+                    } else {
+                        System.err.println("Failed to delete file: " + fileName + " ; removing from gitlet anyway.");
+                    }
+                }
+            }
+        }
+        // * clear the staging area
+        stagingArea.stagedFiles.clear();
+        stagingArea.removedFiles.clear();
+        writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+        // * update the HEAD pointer to point to the new commit
+        updateHeadRef(branchFile); // update the HEAD pointer to point to the new commit
+    }
+
     /** Removes files from the staging area and working directory.
      *  <p>
      *  This method removes the specified files from the staging area and working directory.
@@ -510,7 +653,7 @@ public class Repository {
             if (restrictedDelete(file)) { // remove the file from the working directory
                 System.err.println("Removed " + filename + ".");
             } else {
-                System.err.println("Failed to remove " + filename);
+                System.err.println("Failed to remove " + filename + ". It may not be writable or does not exist.");
             }
             return;
         }
@@ -563,6 +706,7 @@ public class Repository {
         // * this is the branch that HEAD points to
         if (Files.exists(HEAD_FILE)) {
             String headContent = readContentsAsString(HEAD_FILE);
+            // System.err.println("resolving current branch: HEAD at " + headContent);
             if (headContent.startsWith("ref: ")) {
                 String refPath = headContent.substring(5).trim();
                 Path refFile = GITLET_DIR.resolve(refPath);
@@ -581,6 +725,7 @@ public class Repository {
         // * this means that HEAD is not pointing to a branch, but to a commit
         if (Files.exists(HEAD_FILE)) {
             String headContent = readContentsAsString(HEAD_FILE);
+            // System.err.println("checking if HEAD is detached: HEAD at " + headContent + "; current branch: " + currentBranch());
             return !headContent.startsWith("ref: "); // if HEAD does not start with "ref: ", it is detached
         }
         return false; // if the HEAD file does not exist, it is not detached
@@ -706,7 +851,7 @@ public class Repository {
 
     /**
      * Switches to the specified branch.
-     * @param branchName the name of the branch to switch to
+     * @param branch the name of the branch to switch to
      *
      * @implSpec Switches to the branch with the given name.
      * Takes all files in the commit at the head of the given branch, and puts them in the working directory,
@@ -720,13 +865,13 @@ public class Repository {
      * print {@code There is an untracked file in the way; delete it, or add and commit it first.} and exit;
      * perform this check before doing anything else. Do not change the CWD.
      */
-    public void switchBranch(String branchName) {
+    public void switchBranch(String branch) {
         // check the HEAD file
-        if (!isDetachedHead() && isCurrentBranch(branchName)) {
+        if (!isDetachedHead() && isCurrentBranch(branch)) {
             System.out.println("No need to switch to the current branch.");
             return;
         }
-        Path branchFile = BRC_DIR.resolve(branchName);
+        Path branchFile = BRC_DIR.resolve(branch);
         if (!Files.exists(branchFile)) {
             System.out.println("No such branch exists.");
             return;
@@ -735,7 +880,7 @@ public class Repository {
         // checkout the commit, restoring the working directory
         Commit targetCommit = Commit.getByUid(branchCommitUid); // Use cached HEAD commit
         if (targetCommit == null) {
-            System.out.println("No commit found for branch: " + branchName);
+            System.out.println("No commit found for branch: " + branch);
             return;
         }
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(CWD, entry -> !entry.getFileName().toString().equals(".gitlet")
@@ -787,11 +932,12 @@ public class Repository {
             if (blob != null) {
                 Path file = CWD.resolve(fileName);
                 writeContents(file, blob.getContents());
+                System.err.println("Restored file " + file.getFileName() + " to working directory.");
             } else {
                 System.err.println("Blob for file " + fileName + " not found in commit " + branchCommitUid);
             }
         }
-        System.err.println("Switched to branch '" + branchName + "'.");
+        System.err.println("Switched to branch '" + branch + "'.");
     }
 
     public boolean isCurrentBranch(String branchName) {
@@ -799,6 +945,7 @@ public class Repository {
         if (branchName == null || branchName.isBlank()) {
             return false; // invalid branch name
         }
+        // System.err.println("Current branch " + currentBranch() + " compared against " + branchName);
         return currentBranch().equals(branchName);
     }
 

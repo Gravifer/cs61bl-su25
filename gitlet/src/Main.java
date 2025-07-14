@@ -236,8 +236,25 @@ public class Main {
                 }
                 repo.removeBranch(branchName);
             }
-            case "reset" ->
-                    throw todo;
+            case "reset" -> {
+                String commitPrefix = args.length == 0 ? repo.HEAD : args[0];
+                repo.resetHardCommit(commitPrefix);
+            }
+            case "checkout" -> {
+                if (args.length == 1){
+                    repo.checkoutBranch(args[0]);
+                } else {
+                    throw error("todo");
+                    // // checkout a file from a specific commit
+                    // if (args.length < 2 || args[1].isBlank()) {
+                    //     System.out.println("Please enter a commit ID and a file name to checkout.");
+                    //     return repo;
+                    // }
+                    // String commitId = args[0];
+                    // String filename = args[1];
+                    // repo.checkoutFile(commitId, filename);
+                }
+            }
             case "merge" ->
                     throw todo;
             default ->
