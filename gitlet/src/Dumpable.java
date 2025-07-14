@@ -37,19 +37,19 @@ interface Dumpable extends Serializable {
         // if already exists, return the file
         if (file.exists()) return file;
 
-        // Create directories if they don't exist
+        // Create the shard directory if it doesn't exist; can do no harm
         if (!shardDir.exists() && !shardDir.mkdirs()){
             throw new RuntimeException("Failed to create directory: " + shardDir.getAbsolutePath());
         }
 
-        // Create the file if not existing
-        try {
-            if (!file.createNewFile()) {
-                throw new RuntimeException("Failed to create file: " + file.getAbsolutePath());
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to persist object: " + e.getMessage(), e);
-        }
+        // // Create the file if not existing // ! Don't, because this function may be passed an illegal UID
+        // try {
+        //     if (!file.createNewFile()) {
+        //         throw new RuntimeException("Failed to create file: " + file.getAbsolutePath());
+        //     }
+        // } catch (Exception e) {
+        //     throw new RuntimeException("Failed to persist object: " + e.getMessage(), e);
+        // }
         return file;
     }
 
@@ -57,6 +57,16 @@ interface Dumpable extends Serializable {
         String uid = getUid();
         File file = persistFile(uid);
 
+        // * moved from persistFile to here
+        if (!file.exists()) {
+            try {
+                if (!file.createNewFile()) {
+                    throw new RuntimeException("Failed to create file: " + file.getAbsolutePath());
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to persist object: " + e.getMessage(), e);
+            }
+        }
         // Open the file and write the object
         try {
             writeObject(file, this);

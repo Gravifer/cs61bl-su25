@@ -121,7 +121,8 @@ public class Main {
                         repo.restoreFile(args[0], filename);
                     }
                 } else {
-                    System.out.println("Invalid restore command. Use 'restore -- <file>' or 'restore <commit> -- <file>'.");
+                    System.out.println("Incorrect operands.");
+                    System.err.println("Invalid restore command. Use 'restore -- <file>' or 'restore <commit> -- <file>'.");
                     return repo;
                 }
             }
