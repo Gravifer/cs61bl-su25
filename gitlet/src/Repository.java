@@ -302,6 +302,8 @@ public class Repository {
         if (!file.exists()) {
             throw error("File does not exist: " + filePath);
         }
+        // if it is `add`ed, it should not be removed
+        stagingArea.removedFiles.remove(filePath);
         Blob blob = Blob.blobify(file); // persist the blob to the object database
         // * add the file to the staging area
         // * we should also update the staging area with the file information
@@ -315,6 +317,16 @@ public class Repository {
             System.err.println("Can't get creation time of " + file.getAbsolutePath());
         }
         long size = file.length(); // size in bytes
+        // if it is already identical to what the current commit tracks, no need to stage it
+        Commit headCommit = getHeadCommit();
+        if (headCommit != null && headCommit.getFileBlobs().containsKey(filePath)) {
+            String headBlobUid = headCommit.getFileBlobs().get(filePath);
+            if (blob.getUid().equals(headBlobUid)) {
+                stagingArea.stagedFiles.remove(filePath);
+                writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+                return;
+            }
+        }
         stagingArea.stagedFiles.put(filePath, new StagingArea.fileInfo(filePath, blob.getUid(), ctime, mtime, size));
         writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
     }
