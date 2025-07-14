@@ -510,6 +510,8 @@ public class Repository {
         // * print the status of the repository
         // * this includes the current branch, staged files, and untracked files
         // * the .gitlet/ directory should always be ignored
+        Commit currentCommit = getHeadCommit(); // if concurrent, it makes sense to use the earliest HEAD this function sees
+        Set<String> trackedFiles = currentCommit.getFileBlobs().keySet();
         System.out.println("=== Branches ===");
         // walk through the branches directory and print the branch names; needs to recurse to resolve branches with slashes
         File[] branches = BRC_DIR.listFiles();
@@ -552,21 +554,27 @@ public class Repository {
         }
         System.out.println();
         System.out.println("=== Modifications Not Staged For Commit ===");
-        // * print the unstaged files
-        if (!stagingArea.unstagedFiles.isEmpty()) {
-            // for (Map.Entry<String, StagingArea.fileInfo> entry : stagingArea.unstagedFiles.entrySet()) {
-            //     System.out.println(entry.getKey());
-            // }
-            // files should be lexicographically sorted
-            stagingArea.unstagedFiles.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .forEach(entry -> System.out.println(entry.getKey()));
-        }
+        // dynamically check for unstaged files
+        trackedFiles.stream().sorted().forEach(fileName -> {
+            // skip staged and removed
+            if (stagingArea.stagedFiles.containsKey(fileName) || stagingArea.removedFiles.containsKey(fileName)) {
+                return;
+            }
+            File file = join(CWD, fileName);
+            if (file.exists()) {
+                Blob blob = Blob.blobify(file);
+                String headBlobUid = currentCommit.getFileBlobs().get(fileName);
+                if (!blob.getUid().equals(headBlobUid)) {
+                    System.out.println(fileName);
+                }
+            } else {
+                // files deleted in the filesystem but not `gitlet rm`ed
+                System.out.println(fileName);
+            }
+        });
         System.out.println();
         System.out.println("=== Untracked Files ===");
         // Print untracked files: files in CWD that are not staged, not unstaged, not removed, and not tracked by the current commit
-        Commit currentCommit = getHeadCommit(); // Use cached HEAD commit
-        Set<String> trackedFiles = currentCommit.getFileBlobs().keySet();
         File[] untrackedFiles = CWD.listFiles((dir, name) -> !name.equals(".gitlet")
                 && !stagingArea.stagedFiles.containsKey(name)
                 && !stagingArea.unstagedFiles.containsKey(name)
