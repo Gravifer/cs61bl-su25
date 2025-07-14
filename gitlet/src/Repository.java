@@ -822,4 +822,42 @@ public class Repository {
             return new String[0];
         }
     }
+
+    /** Removes a branch from the repository.
+     *  <p>
+     *  This method removes the specified branch from the repository.
+     *  It cannot remove the default branch or the current branch.
+     *
+     *  @param branchName the name of the branch to remove
+     *
+     *  @implSpec Removes the branch with the given name.
+     *  If no such branch exists, print {@code A branch with that name does not exist.}
+     *  If the branch is the current branch, print {@code Cannot remove the current branch.}
+     *  If the branch is the default branch, print {@code Cannot delete the default branch.}
+     */
+    public void removeBranch(String branchName) {
+        // * remove a branch
+        if (branchName == null || branchName.isBlank()) {
+            throw error("No branch name provided.");
+        }
+        if (branchName.equals(defaultBranch)) {
+            System.out.println("Cannot delete the default branch.");
+            return;
+        }
+        if (branchName.equals(currentBranch())) {
+            System.out.println("Cannot remove the current branch.");
+            return;
+        }
+        Path branchFile = BRC_DIR.resolve(branchName);
+        if (!Files.exists(branchFile)) {
+            System.out.println("A branch with that name does not exist.");
+            return;
+        }
+        try {
+            Files.delete(branchFile);
+            System.err.println("Removed branch '" + branchName + "'.");
+        } catch (IOException e) {
+            System.err.println("Failed to remove branch: " + e.getMessage());
+        }
+    }
 }

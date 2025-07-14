@@ -194,6 +194,19 @@ public class Main {
                     }
                     return repo;
                 }
+                if (args.length == 2 && (args[0].equals("-d") || args[0].equals("--delete"))) {
+                    String branchName = args[1];
+                    if (branchName.isBlank()) {
+                        System.out.println("Please enter a branch name to delete.");
+                        return repo;
+                    }
+                    if (branchName.equals(repo.defaultBranch)) {
+                        System.out.println("Cannot delete the default branch.");
+                        return repo;
+                    }
+                    repo.removeBranch(branchName);
+                    return repo;
+                }
                 if (args.length == 0 || args[0].isBlank()) {
                     System.out.println("Please enter a branch name.");
                     return repo;
@@ -211,8 +224,18 @@ public class Main {
                 repo.switchBranch(args[0]);
                 repo = Repository.reinstantiate();
             }
-            case "rm-branch" ->
-                    throw todo;
+            case "rm-branch" -> {
+                if (args.length == 0 || args[0].isBlank()) {
+                    System.out.println("Please enter a branch name to remove.");
+                    return repo;
+                }
+                String branchName = args[0];
+                if (branchName.equals(repo.defaultBranch)) {
+                    System.out.println("Cannot remove the default branch.");
+                    return repo;
+                }
+                repo.removeBranch(branchName);
+            }
             case "reset" ->
                     throw todo;
             case "merge" ->
