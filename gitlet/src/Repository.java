@@ -8,12 +8,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
-import java.util.Set;
 
 import static gitlet.Utils.*;
 
@@ -108,16 +105,32 @@ public class Repository {
         }
         this.HeadCommit = newHead; // update the HeadCommit reference
     }
-    protected void updateHead(String newHeadUid){
-        // * update the HEAD pointer to point to the new commit
-        Commit newHead = Commit.getByUid(newHeadUid);
-        this.HEAD = newHeadUid;
+
+    /** Updates the HEAD pointer to point to a new ref.
+     *  <p>
+     *  This method updates the HEAD pointer to point to a new ref,
+     *  which is typically a branch or tag.
+     *
+     *  @param newHeadRef the new ref to point HEAD to,
+     *                    e.g., "refs/heads/main" or "refs/tags/v1.0"; can be got by
+     *                    {@code GITLET_DIR.toPath().relativize(refFile.toPath()).toString().replace("\\", "/")}<br>
+     *                    where {@code refFile} is the file of the ref, containing its head commit hash.
+     */
+    protected void updateHeadRef(String newHeadRef){
+        // * update the HEAD pointer to point to the new ref
         if (HEAD_FILE.exists()) {
-            writeContents(HEAD_FILE, HEAD); // write the new HEAD UID to the HEAD file
+            writeContents(HEAD_FILE, "ref: " + newHeadRef); // write the new HEAD ref to the HEAD file
         } else {
             throw error("HEAD file does not exist.");
         }
-        this.HeadCommit = newHead; // update the HeadCommit reference
+    }
+    protected void updateHeadRef(File refFile){
+        // * update the HEAD pointer to point to the new ref
+        if (HEAD_FILE.exists()) {
+            writeContents(HEAD_FILE, "ref: " + GITLET_DIR.toPath().relativize(refFile.toPath()).toString().replace("\\", "/")); // write the new HEAD ref to the HEAD file
+        } else {
+            throw error("HEAD file does not exist.");
+        }
     }
 
     /** The index file, aka "current directory cache",
@@ -266,7 +279,9 @@ public class Repository {
         }
         if (!HEAD_FILE.exists()) {
             System.err.println("The HEAD file does not exist.");
-            throw error("fatal: not a git repository (or any of the parent directories): .gitlet"); // mimic the behavior of git
+            // throw error("fatal: not a gitlet repository (or any of the parent directories): .gitlet"); // mimic the behavior of git
+            System.err.println("fatal: not a gitlet repository (or any of the parent directories): .gitlet");
+            return null;
         }
         repo.HEAD = resolveHead();
         // * load the description from the description file
@@ -581,21 +596,19 @@ public class Repository {
         Commit currentCommit = getHeadCommit(); // if concurrent, it makes sense to use the earliest HEAD this function sees
         Set<String> trackedFiles = currentCommit.getFileBlobs().keySet();
         System.out.println("=== Branches ===");
-        // walk through the branches directory and print the branch names; needs to recurse to resolve branches with slashes
-        File[] branches = BRC_DIR.listFiles();
+        String[] branches = getBranches();
         if (branches == null || branches.length == 0) {
             System.out.println("(none)");
         } else {
-            for (File branch : branches) {
-                String branchName = branch.getName();
+            for (String branch : branches) {
                 if (!isDetachedHead()) {
-                    if (branchName.equals(currentBranch())) {
+                    if (isCurrentBranch(branch)) {
                         System.out.print("*"); // mark the current branch with an asterisk
                     } else {
                         System.out.print("");
                     }
                 }
-                System.out.println(branchName);
+                System.out.println(branch);
             }
         }
         System.out.println();
@@ -653,5 +666,169 @@ public class Repository {
             Arrays.stream(untrackedFiles).sorted(File::compareTo).forEach(file -> System.out.println(file.getName()));
 
         }
+    }
+    /**
+     * Create a new branch pointing to the current HEAD.
+     * @param branchName the name of the branch to create
+     * @implSpec Creates a new branch with the given name, and points it at the current head commit.
+     * A branch is nothing more than a name for a reference (a SHA-1 identifier) to a commit node.
+     * This command does NOT immediately switch to the newly created branch (just as in real Git).
+     * Before you ever call branch, your code should be running with a default branch called “main”.
+     */
+    public void createBranch(String branchName, Commit targetCommit) {
+        // * create a new branch pointing to the current HEAD
+        // * if no target commit is provided, use the current HEAD commit
+        if (targetCommit == null) {
+            targetCommit = getHeadCommit(); // Use cached HEAD commit
+        }
+        if (targetCommit == null) {
+            throw error("No current HEAD commit found.");
+        }
+        createBranch(branchName, targetCommit.getUid());
+    }
+    public void createBranch(String branchName, String targetUid) {
+        if (branchName == null || branchName.isBlank()) {
+            System.out.println("Please enter a branch name.");
+            return;
+        }
+        File branchFile = join(BRC_DIR, branchName);
+        if (branchFile.exists()) {
+            System.out.println("A branch with that name already exists.");
+            return;
+        }
+        try {
+            if (!branchFile.createNewFile()) {
+                throw error("Unable to create branch file.");
+            }
+            writeContents(branchFile, targetUid);
+        } catch (IOException e) {
+            throw error("Failed to create branch: " + e.getMessage());
+        }
+    }
+    public void createBranch(String branchName) {
+        // * create a new branch pointing to the current HEAD
+        // * if no target commit is provided, use the current HEAD commit
+        Commit targetCommit = getHeadCommit(); // Use cached HEAD commit
+        createBranch(branchName, targetCommit);
+    }
+
+    /**
+     * Switches to the specified branch.
+     * @param branchName the name of the branch to switch to
+     *
+     * @implSpec Switches to the branch with the given name.
+     * Takes all files in the commit at the head of the given branch, and puts them in the working directory,
+     * overwriting the versions of the files that are already there if they exist (i.e., checkout the commit).
+     * Also, at the end of this command, the given branch will now be considered the current branch (HEAD).
+     * Any files that are tracked in the current branch but are not present in the branch you are switching to are deleted.
+     * The staging area is cleared unless the given branch is the current branch (see failure cases below).
+     * If no branch with that name exists, print {@code No such branch exists.}
+     * If that branch is the current branch, print {@code No need to switch to the current branch.}
+     * If a working file is untracked in the current branch and would be overwritten by the switch,
+     * print {@code There is an untracked file in the way; delete it, or add and commit it first.} and exit;
+     * perform this check before doing anything else. Do not change the CWD.
+     */
+    public void switchBranch(String branchName) {
+        // check the HEAD file
+        if (!isDetachedHead() && isCurrentBranch(branchName)) {
+            System.out.println("No need to switch to the current branch.");
+            return;
+        }
+        File branchFile = join(BRC_DIR, branchName);
+        if (!branchFile.exists()) {
+            System.out.println("No such branch exists.");
+            return;
+        }
+        String branchCommitUid = readContentsAsString(branchFile).trim();
+        // checkout the commit, restoring the working directory
+        Commit targetCommit = Commit.getByUid(branchCommitUid); // Use cached HEAD commit
+        if (targetCommit == null) {
+            System.out.println("No commit found for branch: " + branchName);
+            return;
+        }
+        // check for untracked files that would be overwritten
+        File[] untrackedFiles = CWD.listFiles((dir, name) -> !name.equals(".gitlet")
+                && !stagingArea.stagedFiles.containsKey(name)
+                && !stagingArea.unstagedFiles.containsKey(name)
+                && !stagingArea.removedFiles.containsKey(name)
+                && !getHeadCommit().getFileBlobs().containsKey(name));
+        if (untrackedFiles != null && untrackedFiles.length > 0) {
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.err.println("Untracked files that would be overwritten by the switch:");
+            for (File file : untrackedFiles) {
+                System.err.println(file.getName());
+            }
+            return; // do not proceed with the switch
+        }
+        // point HEAD to the branch commit
+        updateHeadRef(branchFile);
+        this.HEAD = branchCommitUid;
+        this.HeadCommit = Commit.getByUid(branchCommitUid);
+        // clear the working directory
+        File[] workingFiles = CWD.listFiles((dir, name) -> !name.equals(".gitlet"));
+        if (workingFiles != null) {
+            for (File file : workingFiles) {
+                if (!file.getName().equals(".gitlet")) {
+                    if (restrictedDelete(file)){ // delete the file from the working directory
+                    } else {
+                        System.err.println("Failed to delete file " + file.getName());
+                    }
+                }
+            }
+        }
+        // clear the staging area
+        stagingArea.stagedFiles.clear();
+        stagingArea.removedFiles.clear();
+        writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+        // restore the working directory to the state of the target commit
+        for (Map.Entry<String, String> entry : targetCommit.getFileBlobs().entrySet()) {
+            String fileName = entry.getKey();
+            String blobUid = entry.getValue();
+            Blob blob = Blob.getByUid(blobUid);
+            if (blob != null) {
+                File file = join(CWD, fileName);
+                writeContents(file, blob.getContents()); // restore the file to the working directory
+            } else {
+                System.err.println("Blob for file " + fileName + " not found in commit " + branchCommitUid);
+            }
+        }
+        System.err.println("Switched to branch '" + branchName + "'.");
+    }
+
+    public boolean isCurrentBranch(String branchName) {
+        // * check if the current branch is the given branch name
+        if (branchName == null || branchName.isBlank()) {
+            return false; // invalid branch name
+        }
+        return currentBranch().equals(branchName);
+    }
+
+    public String[] getBranches() {
+        // walk through the branches directory and get the branch names
+        File[] branchFilesArr = BRC_DIR.listFiles();
+        if (branchFilesArr == null || branchFilesArr.length == 0) {
+            return new String[0]; // no branches
+        }
+        // recurse to resolve branches with slashes
+        List<String> branchNames = new ArrayList<>();
+        Queue<File> queue = new LinkedList<>(Arrays.asList(branchFilesArr));
+        while (!queue.isEmpty()) {
+            File f = queue.poll();
+            if (f.isDirectory()) {
+                File[] subFiles = f.listFiles();
+                if (subFiles != null) {
+                    queue.addAll(Arrays.asList(subFiles));
+                }
+            } else {
+                // collect the relative paths of the branch files
+                String relPath = BRC_DIR.toPath().relativize(f.toPath()).toString().replace("\\", "/");
+                branchNames.add(relPath);
+            }
+        }
+        return branchNames.toArray(new String[0]);
+        // // // filter out the HEAD file and sort the branch files by name
+        // return Arrays.stream(branchFiles)
+        //         .map(File::getName)
+        //         .toArray(String[]::new); // return the branch names as an array
     }
 }

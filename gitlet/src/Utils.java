@@ -237,16 +237,15 @@ class Utils {
     }
 
     public static void main(String[] args) {
-        // // Example usage of the Utils class
-        // File testFile = new File("test.txt");
-        // writeContents(testFile, "Hello, World!");
-        // System.out.println("Contents of test.txt: " + readContentsAsString(testFile));
-        //
-        // String hash = sha1("Hello", "World");
-        // System.out.println("SHA-1 hash: " + hash);
-        //
-        // // Clean up
-        // restrictedDelete(testFile);
-        System.out.println(sha1("initial commit"));
+        // Example usage of the Utils class
+        File testFile = new File("test.txt");
+        writeContents(testFile, "Hello, World!");
+        System.out.println("Contents of test.txt: " + readContentsAsString(testFile));
+
+        String hash = sha1("Hello", "World");
+        System.out.println("SHA-1 hash: " + hash);
+
+        // Clean up
+        restrictedDelete(testFile);
     }
 }
