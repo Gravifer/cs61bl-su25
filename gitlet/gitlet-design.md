@@ -12,6 +12,11 @@
 
 - This implementation loosely follows the structure of Git
   at [v0.99~954](https://github.com/git/git/tree/e83c5163316f89bfbde7d9ab23ca2e25604af290).
+- It now occurs to me that this is not the best idea,
+  because transparent persistence necessitates a lot of boilerplate code in Java;
+  the intent of the course would be to just serialize the repository as a whole,
+  allowing everything from blobs to branches to hold metadata and be full-fledged classes.
+  I will go through with this bullet-biting though.
 - For an example of a CS61B style design document,
   see [Capers](https://cs61bl.org/su24/projects/gitlet/capers-example).
 

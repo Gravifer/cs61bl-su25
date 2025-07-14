@@ -15,7 +15,7 @@ import static gitlet.Utils.*;
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
- * @author TODO
+ * @author Gravifer
  */
 public class Commit implements Serializable, Comparable<Commit>, Dumpable {
     /* DONE: add instance variables here.
@@ -85,16 +85,19 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
             throw error("Nothing to commit.");
         }
         this.parents = new String[]{parent};
-        // File parentFile = Dumpable.persistFile(parent);
-        // Commit parentCommit = readObject(parentFile, Commit.class);
+        Commit parentCommit = Commit.getByUid(parent);
         this.timestamp = Instant.now(); // use current time
         this.authorTimestamp = timestamp;
         this.message = message;
-        // fileBlobs = parentCommit.fileBlobs == null ? new HashMap<>() : new HashMap<>(parentCommit.fileBlobs);
-        fileBlobs = new HashMap<>();
+        // this.fileBlobs = parentCommit.fileBlobs == null ? new LinkedHashMap<>() : new LinkedHashMap<>(parentCommit.fileBlobs);
+        this.fileBlobs = new LinkedHashMap<>();
+        if (!parentCommit.equals(Commit.initialCommit()) && parentCommit.fileBlobs != null) {
+            this.fileBlobs.putAll(parentCommit.fileBlobs);
+        }
         // * initialize fileBlobs with the contents of the files
         // * we skipped the process of staging the files first, so that selective commiting becomes possible
         if (files != null) {
+            files.sort(Comparator.comparing(File::getPath));
             for (File file : files) {
                 if (file.exists()) {
                     Blob blob = Blob.blobify(file); // persist the blob to the object database
@@ -114,30 +117,39 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
     /**
      * Creates a new Commit with the given message.
      *
-     * @param message    the commit message
-     * @param parent     the UID of the parent commit
-     * @param fileBlobs  the map of staged files (file paths to their Blob UIDs)
-     * @param allowEmpty whether to allow an empty commit (no files)
+     * @param message           the commit message
+     * @param parent            the UID of the parent commit
+     * @param fileBlobsToAdd    the map of staged files (file paths to their Blob UIDs)
+     * @param fileBlobsToRemove the map of removed files (file paths to their Blob UIDs); can be omitted
+     * @param allowEmpty        whether to allow an empty commit (no files); default to false if omitted
      */
-    public Commit(String message, String parent, Map<String, String> fileBlobs, boolean allowEmpty) {
-        this.isEmpty = fileBlobs == null || fileBlobs.isEmpty();
+    public Commit(String message, String parent, Map<String, String> fileBlobsToAdd, Map<String, String> fileBlobsToRemove, boolean allowEmpty) {
+        this.isEmpty = fileBlobsToAdd == null || fileBlobsToAdd.isEmpty();
         if (!allowEmpty && isEmpty) {
             throw error("Nothing to commit.");
         }
         this.parents = new String[]{parent};
+        Commit parentCommit = Commit.getByUid(parent);
         this.timestamp = Instant.now(); // use current time
         this.authorTimestamp = timestamp;
         this.message = message;
-        this.fileBlobs = fileBlobs;
-        // // merge the input map with the parent commit's fileBlobs
-        // File parentFile = Dumpable.persistFile(parent);
-        // Commit parentCommit = readObject(parentFile, Commit.class);
-        // // * merge the fileBlobs with the parent commit's fileBlobs
-        // if (parentCommit.fileBlobs != null) {
-        //     this.fileBlobs.putAll(parentCommit.fileBlobs);
-        // }
+
+        this.fileBlobs = parentCommit.fileBlobs == null ? new LinkedHashMap<>() : new LinkedHashMap<>(parentCommit.fileBlobs);
+        // * merge the fileBlobsToAdd with the parent commit's fileBlobs
+        if (fileBlobsToAdd != null) {
+            this.fileBlobs.putAll(fileBlobsToAdd);
+        }
+        // * remove the fileBlobsToRemove from the parent commit's fileBlobs
+        if (fileBlobsToRemove != null) {
+            for (String filePath : fileBlobsToRemove.keySet()) {
+                this.fileBlobs.remove(filePath);
+            }
+        }
         // * persist the commit itself
         this.persist();
+    }
+    public Commit(String message, String parent, Map<String, String> fileBlobsToAdd, boolean allowEmpty) {
+        this(message, parent, fileBlobsToAdd, null, allowEmpty);
     }
     public Commit(String message, String parent, Map<String, String> fileBlobs){
         this(message, parent, fileBlobs, false);
@@ -169,7 +181,7 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
         this.timestamp = Instant.EPOCH; // Thu Jan 1 00:00:00 1970 +0000
         this.authorTimestamp = timestamp; // same as timestamp for initial commit
         this.parents = new String[]{}; // initial commit has no parents (only it should do this)
-        this.fileBlobs = new HashMap<>(); // initial commit has no files
+        this.fileBlobs = new LinkedHashMap<>(); // initial commit has no files
         this.isEmpty = true; // initial commit is empty
     }
 
@@ -284,7 +296,7 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
         //     throw error("Object does not exist: " + uid);
         // }
         // return readObject(file, Commit.class);
-        if (uid == initialCommit().getUid()) {
+        if (uid.equals(initialCommit().getUid())) {
             return initialCommit(); // return the singleton initial commit
         }
         return Dumpable.getByUid(uid, Commit.class);

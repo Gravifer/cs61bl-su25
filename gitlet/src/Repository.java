@@ -313,7 +313,7 @@ public class Repository {
             return;
         }
         // * create a new commit with the staged files and the given commit message
-        Commit newCommit = new Commit(message, HEAD, stagingArea.getStagedFileBlobs(), true); // per spec, empty commits are the default
+        Commit newCommit = new Commit(message, HEAD, stagingArea.getStagedFileBlobs(), stagingArea.getRemovedFileBlobs(), true); // per spec, empty commits are the default
         // * update the HEAD pointer to point to the new commit
         HEAD = newCommit.getUid();
         try {
@@ -342,6 +342,7 @@ public class Repository {
         System.err.println(newCommit.getFileBlobs().size() + " files changed"); // summarize the changes
         // * clear the staging area
         stagingArea.stagedFiles.clear();
+        stagingArea.removedFiles.clear();
         writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
     }
 
@@ -359,7 +360,6 @@ public class Repository {
      *  printing the error message {@code File does not exist in that commit.} Do not change the CWD.
      */
     public void restoreFile(String commitPrefix, String filename) {
-        // * restore a file from the current commit
         if (filename == null || filename.isBlank()) {
             System.out.println("Please enter a file name.");
             return;
@@ -441,7 +441,7 @@ public class Repository {
                 return "HEAD"; // HEAD is not pointing to a branch, return HEAD
             }
         }
-        return "main"; // default branch name
+        return defaultBranch; // default branch name
     }
 
     public boolean isDetachedHead() {
@@ -451,7 +451,7 @@ public class Repository {
             String headContent = readContentsAsString(HEAD_FILE);
             return !headContent.startsWith("ref: "); // if HEAD does not start with "ref: ", it is detached
         }
-        return false; // if HEAD file does not exist, it is not detached
+        return false; // if the HEAD file does not exist, it is not detached
     }
 
     public void status() {
@@ -525,5 +525,57 @@ public class Repository {
             Arrays.stream(untrackedFiles).sorted(File::compareTo).forEach(file -> System.out.println(file.getName()));
 
         }
+    }
+
+    /** Removes files from the staging area and working directory.
+     *  <p>
+     *  This method removes the specified files from the staging area and working directory.
+     *  If a file is staged, it will be removed from the staging area.
+     *  If a file is not staged, it will be removed from the working directory.
+     *  If a file is not tracked, it will be ignored.
+     *
+     *  @param filename the name of the file to remove
+     *
+     *  @implSpec Unstage the file if it is currently staged for addition.
+     *  If the file is tracked in the current commit, stage it for removal
+     *  and remove the file from the working directory
+     *  if the user has not already done so. (Do not remove it unless it is tracked in the current commit.)
+     *  <p>
+     *  If the file is not staged for addition and not tracked by the head commit,
+     *  print the error message {@code No reason to remove the file.}
+     */
+    public void removeFile(String filename) {
+        // * remove a file from the staging area and working directory
+        if (filename == null || filename.isBlank()) {
+            System.out.println("Please enter a file name.");
+            return;
+        }
+        File file = join(CWD, filename);
+        if (!file.exists()) {
+            throw error("File does not exist: " + filename);
+        }
+        // * if the file is staged, unstage it
+        if (stagingArea.stagedFiles.containsKey(filename)) {
+            stagingArea.stagedFiles.remove(filename);
+            writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+            System.err.println("Unstaged " + filename + ".");
+            return;
+        }
+        // * if the file is tracked in the current commit, stage it for removal
+        Commit currentCommit = Commit.getByUid(HEAD);
+        if (currentCommit.getFileBlobs().containsKey(filename)) {
+            stagingArea.removedFiles.put(filename, new StagingArea.fileInfo(filename, currentCommit.getFileBlobs().get(filename),
+                    Instant.now().toEpochMilli(), Instant.now().toEpochMilli(), file.length()));
+            writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+            try {
+                Files.delete(file.toPath()); // remove the file from the working directory
+                System.err.println("Removed " + filename + ".");
+            } catch (IOException e) {
+                System.err.println("Failed to remove " + filename + ": " + e.getMessage());
+            }
+            return;
+        }
+        // * if the file is not staged for addition and not tracked by the head commit, print an error message
+        System.out.println("No reason to remove the file: " + filename);
     }
 }

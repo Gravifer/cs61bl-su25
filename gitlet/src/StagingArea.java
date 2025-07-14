@@ -56,4 +56,18 @@ public class StagingArea implements Serializable { // StagingAria is mutable so 
         }
         return stagedFileUids;
     }
+    public Map<String, String> getUnstagedFileBlobs() {
+        Map<String, String> unstagedFileUids = new HashMap<>();
+        for (Map.Entry<String, fileInfo> entry : unstagedFiles.entrySet()) {
+            unstagedFileUids.put(entry.getKey(), entry.getValue().blobUid);
+        }
+        return unstagedFileUids;
+    }
+    public Map<String, String> getRemovedFileBlobs() {
+        Map<String, String> removedFileUids = new HashMap<>();
+        for (Map.Entry<String, fileInfo> entry : removedFiles.entrySet()) {
+            removedFileUids.put(entry.getKey(), entry.getValue().blobUid);
+        }
+        return removedFileUids;
+    }
 }

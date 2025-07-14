@@ -126,8 +126,32 @@ public class Main {
                 }
             }
             // DONE: FILL THE REST IN
-            case "rm" ->
-                    throw todo;
+            case "rm" -> {
+                // remove files from the staging area
+                // if the file is not staged, it will be removed from the working directory
+                // if the file is staged, it will be removed from the staging area
+                // if the file is not tracked, it will be ignored
+
+                // check the filenames are valid
+                if (args.length == 0) {
+                    System.out.println("Nothing to remove.");
+                    return repo;
+                }
+                // check if the file exists
+                for (String filename : args) {
+                    if (filename.isEmpty()) {
+                        System.err.println("Empty file name. Ignored.");
+                        continue;
+                    }
+                    File file = new File(filename);
+                    if (!file.exists()) {
+                        System.err.println("File does not exist: " + filename);
+                    }
+                }
+                for (String filename : args) {
+                    repo.removeFile(filename);
+                }
+            }
             case "log" ->
                 repo.log();
             case "global-log" ->
