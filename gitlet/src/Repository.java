@@ -16,8 +16,11 @@ import static gitlet.Utils.*;
 
 /** Represents a gitlet repository.
  * <p>
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+ *  <blockquote>DONE: It's a good idea to give a description here of what else this Class
+ *  does at a high level.</blockquote>
+ *  This class encapsulates the functionality of a gitlet repository,
+ *  including initializing the repository, staging files,
+ *  committing changes, restoring files, and removing files.
  *
  *  @author Gravifer
  */
@@ -31,27 +34,27 @@ public class Repository {
      */
 
     /** The current working directory. */
-    public static final File CWD = new File(System.getProperty("user.dir"));
+    public static final Path CWD = Path.of(System.getProperty("user.dir"));
     /** The .gitlet directory. */
-    public static final File GITLET_DIR = join(CWD, ".gitlet");
+    public static final Path GITLET_DIR = CWD.resolve(".gitlet");
 
     /* DONE: fill in the rest of this class. */
 
     /** The persisted store of serializations. */
-    public static final File OBJ_DIR = join(GITLET_DIR, "objects");
+    public static final Path OBJ_DIR = GITLET_DIR.resolve("objects");
 
     /** The hashes various refs point to. */
-    public static final File REF_DIR = join(GITLET_DIR, "refs");
+    public static final Path REF_DIR = GITLET_DIR.resolve("refs");
 
     /** The hashes various branches point to. */
-    public static final File BRC_DIR = join(REF_DIR, "heads");
+    public static final Path BRC_DIR = REF_DIR.resolve("heads");
     protected final String defaultBranch; // default branch name
 
     /** The hashes various tags point to. */
-    public static final File TAG_DIR = join(REF_DIR, "tags");
+    public static final Path TAG_DIR = REF_DIR.resolve("tags");
 
     /** The HEAD file saves the HEAD pointer UID */
-    public static final File HEAD_FILE = join(GITLET_DIR, "HEAD");
+    public static final Path HEAD_FILE = GITLET_DIR.resolve("HEAD");
     protected String HEAD;
     public String getHead() {
         return HEAD;
@@ -73,17 +76,16 @@ public class Repository {
         }
         return HeadCommit;
     }
-    public static String resolveHead(File file) {
-        // * resolve the HEAD pointer to a full UID if it is a prefix
-        if (!file.exists()) {
+    public static String resolveHead(Path file) {
+        if (!Files.exists(file)) {
             throw error("HEAD file does not exist.");
         }
         String headContent = readContentsAsString(file);
         if (headContent.startsWith("ref: ")) {
             // * if HEAD points to a ref, read the ref file and return its content
             String refPath = headContent.substring(5).trim();
-            File refFile = join(GITLET_DIR, refPath);
-            if (!refFile.exists()) {
+            Path refFile = GITLET_DIR.resolve(refPath);
+            if (!Files.exists(refFile)) {
                 throw error("Ref file does not exist: " + refPath);
             }
             return readContentsAsString(refFile);
@@ -98,8 +100,8 @@ public class Repository {
     protected void updateHead(Commit newHead){
         // * update the HEAD pointer to point to the new commit
         this.HEAD = newHead.getUid();
-        if (HEAD_FILE.exists()) {
-            writeContents(HEAD_FILE, HEAD); // write the new HEAD UID to the HEAD file
+        if (Files.exists(HEAD_FILE)) {
+            writeContents(HEAD_FILE, HEAD);
         } else {
             throw error("HEAD file does not exist.");
         }
@@ -117,17 +119,15 @@ public class Repository {
      *                    where {@code refFile} is the file of the ref, containing its head commit hash.
      */
     protected void updateHeadRef(String newHeadRef){
-        // * update the HEAD pointer to point to the new ref
-        if (HEAD_FILE.exists()) {
-            writeContents(HEAD_FILE, "ref: " + newHeadRef); // write the new HEAD ref to the HEAD file
+        if (Files.exists(HEAD_FILE)) {
+            writeContents(HEAD_FILE, "ref: " + newHeadRef);
         } else {
             throw error("HEAD file does not exist.");
         }
     }
-    protected void updateHeadRef(File refFile){
-        // * update the HEAD pointer to point to the new ref
-        if (HEAD_FILE.exists()) {
-            writeContents(HEAD_FILE, "ref: " + GITLET_DIR.toPath().relativize(refFile.toPath()).toString().replace("\\", "/")); // write the new HEAD ref to the HEAD file
+    protected void updateHeadRef(Path refFile){
+        if (Files.exists(HEAD_FILE)) {
+            writeContents(HEAD_FILE, "ref: " + GITLET_DIR.relativize(refFile).toString().replace("\\", "/"));
         } else {
             throw error("HEAD file does not exist.");
         }
@@ -135,7 +135,7 @@ public class Repository {
 
     /** The index file, aka "current directory cache",
      * contains the serialization of blobs representing staged files. */
-    public static final File INDX_FILE = join(GITLET_DIR, "index");
+    public static final Path INDX_FILE = GITLET_DIR.resolve("index");
     /** The staging area, which is a map of file paths to their corresponding Blob UIDs.
      *  This is used to track files that are staged for commit.
      *  <p>
@@ -146,7 +146,7 @@ public class Repository {
     protected final StagingArea stagingArea;
 
     /** The description file saves the description of the repo */
-    public static final File DESC_FILE = join(GITLET_DIR, "description");
+    public static final Path DESC_FILE = GITLET_DIR.resolve("description");
     protected String description = "Unnamed repository; edit this file 'description' to name the repository.\n";
 
 
@@ -194,61 +194,54 @@ public class Repository {
         }
         // * the provided Repository class uses CWD as the repo root naively,
         // * so we should always do verifications in Main
-        if (Repository.GITLET_DIR.exists()) {
+        if (Files.exists(Repository.GITLET_DIR)) {
             // * the spec does not ask for reinitialization of the repository, so we should not allow it
             System.out.println("A Gitlet version-control system already exists in the current directory.");
             return;
         }
-        String dbPath = Repository.GITLET_DIR.getAbsolutePath();
+        String dbPath = Repository.GITLET_DIR.toAbsolutePath().toString();
         try {
-            if (Repository.GITLET_DIR.mkdir()) {
-                // if the directory was created successfully, we can initialize the repository
-                if (!Repository.INDX_FILE.createNewFile() && !Repository.INDX_FILE.createNewFile()) { // create the index file
-                    throw error("Unable to create index file in .gitlet/ directory.");
-                }
-                Repository repo = new Repository(); // create a new repository instance
-                writeObject(INDX_FILE, repo.stagingArea); // persist the staging area to the index file
-                if (!Repository.DESC_FILE.createNewFile() && !Repository.DESC_FILE.createNewFile()) { // create the description file
-                    throw error("Unable to create description file in .gitlet/ directory.");
-                }
-                writeContents(Repository.DESC_FILE, repo.description); // write the default description to the description file
-                if (!Repository.HEAD_FILE.createNewFile() && !Repository.HEAD_FILE.createNewFile()) { // create the HEAD file
-                    throw error("Unable to create HEAD file in .gitlet/ directory.");
-                }
-                Commit initialCommit = Commit.initialCommit(); // initial commit is empty and a singleton, so no need to persist it
-                // nevertheless, we should initialize the object database
-                for (File dir : new File[]{Repository.OBJ_DIR, Repository.REF_DIR, Repository.BRC_DIR, Repository.TAG_DIR}) {
-                    if (!dir.exists() && !dir.mkdirs()) {
-                        throw error("Unable to create directory: " + dir.getAbsolutePath());
-                    }
-                    if (!dir.isDirectory()) {
-                        throw error("The path " + dir.getAbsolutePath() + " is not a directory.");
-                    }
-                }
-                writeContents(Repository.HEAD_FILE, initialCommit.getUid()); // write the initial commit UID to HEAD
-                // DONE: create the default branch ("main")
-                File currentBranchFile = join(Repository.BRC_DIR, branch);
-                if (!currentBranchFile.createNewFile() && !currentBranchFile.createNewFile()) { // create the default branch file
-                    throw error("Unable to create default branch ref file");
-                }
-                writeContents(currentBranchFile, initialCommit.getUid()); // write the initial commit UID to the default branch file
-                if (!branch.equals(defaultBranch)) {
-                    File defaultBranchFile = join(Repository.BRC_DIR, defaultBranch);
-                    if (!defaultBranchFile.createNewFile() && !defaultBranchFile.createNewFile()) { // create the default branch file
-                        throw error("Unable to create default branch ref file");
-                    }
-                    writeContents(defaultBranchFile, initialCommit.getUid()); // write the initial commit UID to the default branch file
-                    // put the ref to the default branch in the HEAD file
-                }
-                // get the relative path from the GITLET_DIR to the branch file
-                writeContents(Repository.HEAD_FILE, "ref: " + GITLET_DIR // point HEAD to the default branch
-                        .toPath().relativize(currentBranchFile.toPath()).toString().replace("\\", "/"));
-                System.err.println("Initialized an empty Gitlet repository in " + dbPath); // Per spec, no output on System.out
-            } else {
-                System.err.printf("init_db(): java.io.File.mkdir() returned false for " + dbPath);
-                // System.exit(1); // ! Per spec, always exit with exit code 0, even in the presence of errors.
-                throw new IOException(String.format("Unable to create directory at " + dbPath));
+            Files.createDirectory(Repository.GITLET_DIR);// if the directory was created successfully, we can initialize the repository
+            if (!Files.exists(Repository.INDX_FILE)) {
+                Files.createFile(Repository.INDX_FILE);
             }
+            Repository repo = new Repository(); // create a new repository instance
+            writeObject(INDX_FILE, repo.stagingArea); // persist the staging area to the index file
+            if (!Files.exists(Repository.DESC_FILE)) { // create the description file
+                Files.createFile(Repository.DESC_FILE);
+            }
+            writeContents(Repository.DESC_FILE, repo.description); // write the default description to the description file
+            if (!Files.exists(Repository.HEAD_FILE)) { // create the HEAD file
+                Files.createFile(Repository.HEAD_FILE);
+            }
+            Commit initialCommit = Commit.initialCommit(); // initial commit is empty and a singleton, so no need to persist it
+            // nevertheless, we should initialize the object database
+            for (Path dir : new Path[]{Repository.OBJ_DIR, Repository.REF_DIR, Repository.BRC_DIR, Repository.TAG_DIR}) {
+                if (!Files.exists(dir)) {
+                    Files.createDirectories(dir);
+                }
+                if (!Files.isDirectory(dir)) {
+                    throw error("The path " + dir.toAbsolutePath() + " is not a directory.");
+                }
+            }
+            writeContents(Repository.HEAD_FILE, initialCommit.getUid()); // write the initial commit UID to HEAD
+            // DONE: create the default branch ("main")
+            Path currentBranchFile = Repository.BRC_DIR.resolve(branch);
+            if (!Files.exists(currentBranchFile)) {
+                Files.createFile(currentBranchFile);
+            }
+            writeContents(currentBranchFile, initialCommit.getUid()); // write the initial commit UID to the default branch file
+            if (!branch.equals(defaultBranch)) {
+                Path defaultBranchFile = Repository.BRC_DIR.resolve(defaultBranch);
+                if (!Files.exists(defaultBranchFile)) {
+                    Files.createFile(defaultBranchFile);
+                }
+                writeContents(defaultBranchFile, initialCommit.getUid()); // write the initial commit UID to the default branch file
+                // put the ref to the default branch in the HEAD file
+            }
+            // get the relative path from the GITLET_DIR to the branch file
+            writeContents(Repository.HEAD_FILE, "ref: " + Repository.GITLET_DIR.relativize(currentBranchFile).toString().replace("\\", "/"));
+            System.err.println("Initialized an empty Gitlet repository in " + dbPath); // Per spec, no output on System.out
         } catch (Exception e) {
             System.err.println("An unexpected error occurred while initializing the Gitlet repository: " + e.getMessage());
             throw e; // new GitletException("Unable to create .gitlet/ directory.");
@@ -271,21 +264,19 @@ public class Repository {
         // * reinstantiate the repository from the current HEAD
         // * this method should read the HEAD file and restore the repository to that state
         Repository repo;
-        // * load the staging area from the index file
-        if (INDX_FILE.exists()) {
+        if (Files.exists(INDX_FILE)) {
             repo = new Repository(readObject(INDX_FILE, StagingArea.class));
         } else {
             repo = new Repository();
         }
-        if (!HEAD_FILE.exists()) {
+        if (!Files.exists(HEAD_FILE)) {
             System.err.println("The HEAD file does not exist.");
             // throw error("fatal: not a gitlet repository (or any of the parent directories): .gitlet"); // mimic the behavior of git
             System.err.println("fatal: not a gitlet repository (or any of the parent directories): .gitlet");
             return null;
         }
         repo.HEAD = resolveHead();
-        // * load the description from the description file
-        if (DESC_FILE.exists()) {
+        if (Files.exists(DESC_FILE)) {
             repo.description = readContentsAsString(DESC_FILE);
         }
         return repo;
@@ -310,40 +301,42 @@ public class Repository {
      *  If the file does not exist, print the error message {@code File does not exist.} and exit without changing anything.
      */
     public void stageFile(String filePath) {
-        // * stage a file for commit
-        // * this method should add the file to the staging area
-        // * if the file is already staged, it should update the staging area
-        File file = join(CWD, filePath);
-        if (!file.exists()) {
+        Path file = CWD.resolve(filePath);
+        if (!Files.exists(file)) {
             throw error("File does not exist: " + filePath);
         }
         // if it is `add`ed, it should not be removed
         stagingArea.removedFiles.remove(filePath);
-        Blob blob = Blob.blobify(file); // persist the blob to the object database
-        // * add the file to the staging area
-        // * we should also update the staging area with the file information
-        // * the fileInfo object should contain the file path, blob UID, creation time, last modified time, and size
-        long mtime = file.lastModified(); // last modified time
+        Blob blob = Blob.blobify(file);
+        long mtime = 0;
+        try {
+            mtime = Files.getLastModifiedTime(file).toMillis();
+        } catch (IOException e) {
+            System.err.println("Can't get lasy modified time of " + file.toAbsolutePath());
+        }
         long ctime = mtime;
         try {
-            BasicFileAttributes attrs = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-            ctime = attrs.creationTime().toMillis(); // creation time
+            ctime = Files.readAttributes(file, BasicFileAttributes.class).creationTime().toMillis();
         } catch (IOException e) {
-            System.err.println("Can't get creation time of " + file.getAbsolutePath());
+            System.err.println("Can't get creation time of " + file.toAbsolutePath());
         }
-        long size = file.length(); // size in bytes
-        // if it is already identical to what the current commit tracks, no need to stage it
+        long size = 0;
+        try {
+            size = Files.size(file);
+        } catch (IOException e) {
+            System.err.println("Can't get size of " + file.toAbsolutePath());
+        }
         Commit headCommit = getHeadCommit();
         if (headCommit != null && headCommit.getFileBlobs().containsKey(filePath)) {
             String headBlobUid = headCommit.getFileBlobs().get(filePath);
             if (blob.getUid().equals(headBlobUid)) {
                 stagingArea.stagedFiles.remove(filePath);
-                writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+                writeObject(INDX_FILE, stagingArea);
                 return;
             }
         }
         stagingArea.stagedFiles.put(filePath, new StagingArea.fileInfo(filePath, blob.getUid(), ctime, mtime, size));
-        writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+        writeObject(INDX_FILE, stagingArea);
     }
 
     /** Commits the staged files to the repository.
@@ -385,18 +378,18 @@ public class Repository {
         HEAD = newCommit.getUid();
         try {
             // if the HEAD file contains a ref, we should update it to point to the new commit
-            if (HEAD_FILE.exists()) {
+            if (Files.exists(HEAD_FILE)) {
                 String headContent = readContentsAsString(HEAD_FILE);
                 if (headContent.startsWith("ref: ")) {
                     // * if HEAD points to a ref, we should update the ref file
                     String refPath = headContent.substring(5).trim();
-                    File refFile = join(GITLET_DIR, refPath);
-                    if (!refFile.exists()) {
+                    Path refFile = join(GITLET_DIR, refPath);
+                    if (!Files.exists(refFile)) {
                         throw error("Ref file does not exist: " + refPath);
                     }
                     writeContents(refFile, HEAD); // update the ref file to point to the new commit
                 } else {
-                    Files.writeString(HEAD_FILE.toPath(), HEAD);
+                    Files.writeString(HEAD_FILE, HEAD);
                 }
             } else {
                 throw error("HEAD file does not exist.");
@@ -428,12 +421,12 @@ public class Repository {
      */
     public void restoreFile(String commitPrefix, String filename) {
         if (filename == null || filename.isBlank()) {
-            System.out.println("Please enter a file name.");
+            System.err.println("restore: nothing to restore.");
             return;
         }
         if (commitPrefix == null || commitPrefix.isBlank()) {
             System.err.println("restore: commitPrefix is null or empty, using HEAD as default.");
-            commitPrefix = HEAD; // if no commit prefix is provided, use HEAD
+            commitPrefix = HEAD;
         }
         try {
             Commit intendedCommit = Commit.getByUid(commitPrefix);
@@ -452,8 +445,7 @@ public class Repository {
                 System.err.println("Blob for file " + filename + " missing in commit " + commitPrefix);
                 return;
             }
-            // * restore the file to the working directory
-            File file = join(CWD, filename);
+            Path file = CWD.resolve(filename);
             writeContents(file, blob.getContents());
             System.err.println("File " + filename + " has been restored to the working directory.");
         } catch (GitletException e) {
@@ -492,8 +484,8 @@ public class Repository {
             System.out.println("Please enter a file name.");
             return;
         }
-        File file = join(CWD, filename);
-        if (!file.exists()) {
+        Path file = CWD.resolve(filename);
+        if (!Files.exists(file)) {
             System.err.println("File does not exist: " + filename + " ; removing from gitlet anyway.");
         }
         // * if the file is staged, unstage it
@@ -506,14 +498,19 @@ public class Repository {
         // * if the file is tracked in the current commit, stage it for removal
         Commit currentCommit = getHeadCommit(); // Use cached HEAD commit
         if (currentCommit.getFileBlobs().containsKey(filename)) {
-            stagingArea.removedFiles.put(filename, new StagingArea.fileInfo(filename, currentCommit.getFileBlobs().get(filename),
-                    Instant.now().toEpochMilli(), Instant.now().toEpochMilli(), file.length()));
-            writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+            long fileLength = 0;
             try {
-                Files.delete(file.toPath()); // remove the file from the working directory
-                System.err.println("Removed " + filename + ".");
+                fileLength = Files.size(file);
             } catch (IOException e) {
-                System.err.println("Failed to remove " + filename + ": " + e.getMessage());
+                System.err.println("Failed to get file length: " + e.getMessage());
+            }
+            stagingArea.removedFiles.put(filename, new StagingArea.fileInfo(filename, currentCommit.getFileBlobs().get(filename),
+                    Instant.now().toEpochMilli(), Instant.now().toEpochMilli(), fileLength));
+            writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
+            if (restrictedDelete(file)) { // remove the file from the working directory
+                System.err.println("Removed " + filename + ".");
+            } else {
+                System.err.println("Failed to remove " + filename);
             }
             return;
         }
@@ -564,13 +561,13 @@ public class Repository {
     public String currentBranch() {
         // * return the current branch name
         // * this is the branch that HEAD points to
-        if (HEAD_FILE.exists()) {
+        if (Files.exists(HEAD_FILE)) {
             String headContent = readContentsAsString(HEAD_FILE);
             if (headContent.startsWith("ref: ")) {
                 String refPath = headContent.substring(5).trim();
-                File refFile = join(GITLET_DIR, refPath);
-                if (refFile.exists()) {
-                    return refFile.getName(); // return the branch name
+                Path refFile = GITLET_DIR.resolve(refPath);
+                if (Files.exists(refFile)) {
+                    return refFile.getFileName().toString();
                 }
             } else {
                 return "HEAD"; // HEAD is not pointing to a branch, return HEAD
@@ -582,7 +579,7 @@ public class Repository {
     public boolean isDetachedHead() {
         // * check if the HEAD is detached
         // * this means that HEAD is not pointing to a branch, but to a commit
-        if (HEAD_FILE.exists()) {
+        if (Files.exists(HEAD_FILE)) {
             String headContent = readContentsAsString(HEAD_FILE);
             return !headContent.startsWith("ref: "); // if HEAD does not start with "ref: ", it is detached
         }
@@ -590,10 +587,7 @@ public class Repository {
     }
 
     public void status() {
-        // * print the status of the repository
-        // * this includes the current branch, staged files, and untracked files
-        // * the .gitlet/ directory should always be ignored
-        Commit currentCommit = getHeadCommit(); // if concurrent, it makes sense to use the earliest HEAD this function sees
+        Commit currentCommit = getHeadCommit();
         Set<String> trackedFiles = currentCommit.getFileBlobs().keySet();
         System.out.println("=== Branches ===");
         String[] branches = getBranches();
@@ -641,30 +635,30 @@ public class Repository {
             if (stagingArea.stagedFiles.containsKey(fileName) || stagingArea.removedFiles.containsKey(fileName)) {
                 return;
             }
-            File file = join(CWD, fileName);
-            if (file.exists()) {
+            Path file = CWD.resolve(fileName);
+            if (Files.exists(file)) {
                 Blob blob = Blob.blobify(file);
                 String headBlobUid = currentCommit.getFileBlobs().get(fileName);
                 if (!blob.getUid().equals(headBlobUid)) {
                     System.out.println(fileName);
                 }
             } else {
-                // files deleted in the filesystem but not `gitlet rm`ed
                 System.out.println(fileName);
             }
         });
         System.out.println();
         System.out.println("=== Untracked Files ===");
         // Print untracked files: files in CWD that are not staged, not unstaged, not removed, and not tracked by the current commit
-        File[] untrackedFiles = CWD.listFiles((dir, name) -> !name.equals(".gitlet")
-                && !stagingArea.stagedFiles.containsKey(name)
-                && !stagingArea.unstagedFiles.containsKey(name)
-                && !stagingArea.removedFiles.containsKey(name)
-                && !trackedFiles.contains(name));
-        if (untrackedFiles != null && untrackedFiles.length > 0) {
-            // Sort files lexicographically
-            Arrays.stream(untrackedFiles).sorted(File::compareTo).forEach(file -> System.out.println(file.getName()));
-
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(CWD, entry -> !entry.getFileName().toString().equals(".gitlet")
+                && !stagingArea.stagedFiles.containsKey(entry.getFileName().toString())
+                && !stagingArea.unstagedFiles.containsKey(entry.getFileName().toString())
+                && !stagingArea.removedFiles.containsKey(entry.getFileName().toString())
+                && !trackedFiles.contains(entry.getFileName().toString()))) {
+            for (Path file : stream) {
+                System.out.println(file.getFileName());
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to list untracked files: " + e.getMessage());
         }
     }
     /**
@@ -691,15 +685,13 @@ public class Repository {
             System.out.println("Please enter a branch name.");
             return;
         }
-        File branchFile = join(BRC_DIR, branchName);
-        if (branchFile.exists()) {
+        Path branchFile = BRC_DIR.resolve(branchName);
+        if (Files.exists(branchFile)) {
             System.out.println("A branch with that name already exists.");
             return;
         }
         try {
-            if (!branchFile.createNewFile()) {
-                throw error("Unable to create branch file.");
-            }
+            Files.createFile(branchFile);
             writeContents(branchFile, targetUid);
         } catch (IOException e) {
             throw error("Failed to create branch: " + e.getMessage());
@@ -734,8 +726,8 @@ public class Repository {
             System.out.println("No need to switch to the current branch.");
             return;
         }
-        File branchFile = join(BRC_DIR, branchName);
-        if (!branchFile.exists()) {
+        Path branchFile = BRC_DIR.resolve(branchName);
+        if (!Files.exists(branchFile)) {
             System.out.println("No such branch exists.");
             return;
         }
@@ -746,35 +738,42 @@ public class Repository {
             System.out.println("No commit found for branch: " + branchName);
             return;
         }
-        // check for untracked files that would be overwritten
-        File[] untrackedFiles = CWD.listFiles((dir, name) -> !name.equals(".gitlet")
-                && !stagingArea.stagedFiles.containsKey(name)
-                && !stagingArea.unstagedFiles.containsKey(name)
-                && !stagingArea.removedFiles.containsKey(name)
-                && !getHeadCommit().getFileBlobs().containsKey(name));
-        if (untrackedFiles != null && untrackedFiles.length > 0) {
-            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-            System.err.println("Untracked files that would be overwritten by the switch:");
-            for (File file : untrackedFiles) {
-                System.err.println(file.getName());
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(CWD, entry -> !entry.getFileName().toString().equals(".gitlet")
+                && !stagingArea.stagedFiles.containsKey(entry.getFileName().toString())
+                && !stagingArea.unstagedFiles.containsKey(entry.getFileName().toString())
+                && !stagingArea.removedFiles.containsKey(entry.getFileName().toString())
+                && !getHeadCommit().getFileBlobs().containsKey(entry.getFileName().toString()))) {
+            List<String> untrackedFiles = new ArrayList<>();
+            for (Path file : stream) {
+                untrackedFiles.add(file.getFileName().toString());
             }
-            return; // do not proceed with the switch
+            if (!untrackedFiles.isEmpty()) {
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.err.println("Untracked files that would be overwritten by the switch:");
+                for (String fileName : untrackedFiles) {
+                    System.err.println(fileName);
+                }
+                return;
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to check untracked files: " + e.getMessage()); return;
         }
         // point HEAD to the branch commit
         updateHeadRef(branchFile);
         this.HEAD = branchCommitUid;
         this.HeadCommit = Commit.getByUid(branchCommitUid);
-        // clear the working directory
-        File[] workingFiles = CWD.listFiles((dir, name) -> !name.equals(".gitlet"));
-        if (workingFiles != null) {
-            for (File file : workingFiles) {
-                if (!file.getName().equals(".gitlet")) {
-                    if (restrictedDelete(file)){ // delete the file from the working directory
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(CWD, entry -> !entry.getFileName().toString().equals(".gitlet"))) {
+            for (Path file : stream) {
+                if (!file.getFileName().toString().equals(".gitlet")) {
+                    if (restrictedDelete(file)) {
+                        System.err.println("Deleted file " + file.getFileName() + " from working directory.");
                     } else {
-                        System.err.println("Failed to delete file " + file.getName());
+                        System.err.println("Failed to delete file " + file.getFileName());
                     }
                 }
             }
+        } catch (IOException e) {
+            System.err.println("Failed to clean working directory: " + e.getMessage());
         }
         // clear the staging area
         stagingArea.stagedFiles.clear();
@@ -786,8 +785,8 @@ public class Repository {
             String blobUid = entry.getValue();
             Blob blob = Blob.getByUid(blobUid);
             if (blob != null) {
-                File file = join(CWD, fileName);
-                writeContents(file, blob.getContents()); // restore the file to the working directory
+                Path file = CWD.resolve(fileName);
+                writeContents(file, blob.getContents());
             } else {
                 System.err.println("Blob for file " + fileName + " not found in commit " + branchCommitUid);
             }
@@ -804,31 +803,23 @@ public class Repository {
     }
 
     public String[] getBranches() {
-        // walk through the branches directory and get the branch names
-        File[] branchFilesArr = BRC_DIR.listFiles();
-        if (branchFilesArr == null || branchFilesArr.length == 0) {
-            return new String[0]; // no branches
-        }
-        // recurse to resolve branches with slashes
-        List<String> branchNames = new ArrayList<>();
-        Queue<File> queue = new LinkedList<>(Arrays.asList(branchFilesArr));
-        while (!queue.isEmpty()) {
-            File f = queue.poll();
-            if (f.isDirectory()) {
-                File[] subFiles = f.listFiles();
-                if (subFiles != null) {
-                    queue.addAll(Arrays.asList(subFiles));
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(BRC_DIR)) {
+            List<String> branchNames = new ArrayList<>();
+            for (Path f : stream) {
+                if (Files.isDirectory(f)) {
+                    try (DirectoryStream<Path> subStream = Files.newDirectoryStream(f)) {
+                        for (Path sub : subStream) {
+                            branchNames.add(BRC_DIR.relativize(sub).toString().replace("\\", "/"));
+                        }
+                    }
+                } else {
+                    branchNames.add(BRC_DIR.relativize(f).toString().replace("\\", "/"));
                 }
-            } else {
-                // collect the relative paths of the branch files
-                String relPath = BRC_DIR.toPath().relativize(f.toPath()).toString().replace("\\", "/");
-                branchNames.add(relPath);
             }
+            return branchNames.toArray(new String[0]);
+        } catch (IOException e) {
+            System.err.println("Failed to list branches: " + e.getMessage());
+            return new String[0];
         }
-        return branchNames.toArray(new String[0]);
-        // // // filter out the HEAD file and sort the branch files by name
-        // return Arrays.stream(branchFiles)
-        //         .map(File::getName)
-        //         .toArray(String[]::new); // return the branch names as an array
     }
 }

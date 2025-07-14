@@ -529,19 +529,19 @@ public class GitletAdditionalTests {
             // * reinstantiate the repository from the current HEAD
             // * this method should read the HEAD file and restore the repository to that state
             IntrospectRepository repo;
-            // * load the staging area from the index file
-            if (INDX_FILE.exists()) {
+            if (Files.exists(INDX_FILE)) {
                 repo = new IntrospectRepository(readObject(INDX_FILE, StagingArea.class));
             } else {
                 repo = new IntrospectRepository();
             }
-            if (!HEAD_FILE.exists()) {
+            if (!Files.exists(HEAD_FILE)) {
                 System.err.println("The HEAD file does not exist.");
-                throw error("fatal: not a git repository (or any of the parent directories): .gitlet"); // mimic the behavior of git
+                // throw error("fatal: not a gitlet repository (or any of the parent directories): .gitlet"); // mimic the behavior of git
+                System.err.println("fatal: not a gitlet repository (or any of the parent directories): .gitlet");
+                return null;
             }
             repo.HEAD = resolveHead();
-            // * load the description from the description file
-            if (DESC_FILE.exists()) {
+            if (Files.exists(DESC_FILE)) {
                 repo.description = readContentsAsString(DESC_FILE);
             }
             return repo;
@@ -570,7 +570,7 @@ public class GitletAdditionalTests {
         writeFile(WUG, "wug.txt");
         // assert that number of files (recursive) under .gitlet/objects increased
         try (
-            var beforeStream = Files.walk(Path.of(".gitlet/objects"));
+            var beforeStream = Files.walk(Path.of(".gitlet/objects"))
         ) {
             long objectCountBefore = beforeStream.count();
             gitletCommand(new String[]{"add", "wug.txt"}, "");

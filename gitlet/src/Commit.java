@@ -66,7 +66,7 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
      * Not serialized; rebuilt on demand after deserialization.
      *
      * <p>
-     * @implNote: This map is always initialized in the constructor for new objects,
+     * @implNote This map is always initialized in the constructor for new objects,
      * but since it is transient, it will be null after deserialization. Therefore,
      * all accessors (such as getParentCommit) will lazily rebuild it if needed.
      * This ensures correctness and performance for both new and deserialized objects.
@@ -369,7 +369,7 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
 
     @Override
     public String getUid() {
-        // 只用核心字段计算UID，保证持久化和反序列化一致
+        // use only core fields to calculate UID, ensure consistency in persistence and deserialization
         StringBuilder sb = new StringBuilder();
         sb.append(getDumpType()).append("\0");
         sb.append(message).append("\0");
@@ -378,10 +378,8 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
         for (String parent : parents) {
             sb.append(parent).append("\0");
         }
-        // fileBlobs 按 key 排序，保证顺序一致
-        fileBlobs.keySet().stream().sorted().forEach(key -> {
-            sb.append(key).append(":").append(fileBlobs.get(key)).append("\0");
-        });
+        // * sort the fileBlobs by key to ensure consistent order
+        fileBlobs.keySet().stream().sorted().forEach(key -> sb.append(key).append(":").append(fileBlobs.get(key)).append("\0"));
         return sha1(sb.toString());
     }
 }

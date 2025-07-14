@@ -23,11 +23,11 @@ public class StagingArea implements Serializable { // StagingAria is mutable so 
      *  - {@code size}: the size of the file in bytes, which is used to track the size of the file.
      */
     protected static class fileInfo implements Serializable {
-        private String filePath;
-        private String blobUid;
-        private long ctime; // creation time
-        private long mtime; // last modified time
-        private long size;
+        private final String filePath;
+        private final String blobUid;
+        private final long ctime; // creation time
+        private final long mtime; // last modified time
+        private final long size;
 
         public fileInfo(String filePath, String blobUid, long ctime, long mtime, long size) {
             this.filePath = filePath;
@@ -38,9 +38,9 @@ public class StagingArea implements Serializable { // StagingAria is mutable so 
         }
     }
 
-    Map<String, fileInfo> stagedFiles;
-    Map<String, fileInfo> unstagedFiles;
-    Map<String, fileInfo> removedFiles;
+    final Map<String, fileInfo> stagedFiles;
+    final Map<String, fileInfo> unstagedFiles;
+    final Map<String, fileInfo> removedFiles;
 
     /** Initializes the staging area. */
     public StagingArea() {

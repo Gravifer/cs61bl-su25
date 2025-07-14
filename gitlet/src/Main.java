@@ -72,9 +72,13 @@ public class Main {
             case "init" -> {// * A Gitlet system is considered "initialized" in a particular location if it has a `.gitlet` directory there.
                 Repository.init_db(); // DONE: handle the `init` command
                 repo = Repository.reinstantiate();
-                System.err.println("Initialized repolet with default branch: " + repo.defaultBranch);
-                System.err.println("\t      -> " + repo.resolveHead(join(Repository.BRC_DIR, repo.defaultBranch)));
-                System.err.println("\t HEAD -> " + repo.HEAD);
+                if (repo != null) {
+                    System.err.println("Initialized repolet with default branch: " + repo.defaultBranch);
+                    System.err.println("\t      -> " + Repository.resolveHead(join(Repository.BRC_DIR, repo.defaultBranch)));
+                    System.err.println("\t HEAD -> " + repo.HEAD);
+                } else {
+                    System.out.println("Failed to initialize Gitlet repository.");
+                }
             }
             case "add" -> {
                 // DONE: handle the `add [filename]` command
@@ -185,7 +189,7 @@ public class Main {
                             }
                             System.out.print(branch + "\t");
                             // get the commit UID of the branch from the branch file
-                            System.out.print(repo.resolveHead(join(Repository.BRC_DIR, branch)));
+                            System.out.print(Repository.resolveHead(join(Repository.BRC_DIR, branch)));
                         }
                     }
                     return repo;
@@ -197,7 +201,7 @@ public class Main {
                 String newBranchName = args[0];
                 repo.createBranch(newBranchName);
                 System.err.println("Created a new branch: " + newBranchName);
-                System.err.println("\t      -> " + repo.resolveHead(join(Repository.BRC_DIR, newBranchName)));
+                System.err.println("\t      -> " + Repository.resolveHead(join(Repository.BRC_DIR, newBranchName)));
             }
             case "switch" -> {
                 if (args.length == 0 || args[0].isBlank()) {

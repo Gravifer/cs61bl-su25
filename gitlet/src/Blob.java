@@ -3,7 +3,8 @@ package gitlet;
 import java.io.File;
 import java.io.Serializable;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.io.IOException;
 
 import static gitlet.Utils.*;
 
@@ -19,8 +20,8 @@ public class Blob implements Serializable, Dumpable {
     }
     public Blob(Path filePath) {
         try {
-            this.contents = java.nio.file.Files.readAllBytes(filePath);
-        } catch (java.io.IOException e) {
+            this.contents = Files.readAllBytes(filePath);
+        } catch (IOException e) {
             throw new RuntimeException("Failed to read file: " + filePath, e);
         }
     }
@@ -35,19 +36,22 @@ public class Blob implements Serializable, Dumpable {
     /** Create a Blob from a file, reading its contents and persisting it.
      *  This method reads the file's contents into a byte array, creates a Blob
      *  object, and persists it using the persist method.
-     *  @param file the file to be converted into a Blob
+     *  @param filePath the file to be converted into a Blob
      *  @return the created Blob object
      *  @serialData The contents of the file as a byte array, located in a shard in .gitlet/objects.
      */
-    public static Blob blobify(File file) {
+    public static Blob blobify(Path filePath) {
         try {
-            byte[] fileContents = java.nio.file.Files.readAllBytes(file.toPath());
+            byte[] fileContents = Files.readAllBytes(filePath);
             Blob blob = new Blob(fileContents);
             blob.persist();
             return blob;
-        } catch (java.io.IOException e) {
-            throw new RuntimeException("Failed to read file: " + file.getName(), e);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read file: " + filePath, e);
         }
+    }
+    public static Blob blobify(File file) {
+        return blobify(file.toPath());
     }
     public byte[] getContents() {
         return contents;
@@ -63,8 +67,6 @@ public class Blob implements Serializable, Dumpable {
         if (o == null) return false;
         if (!(o instanceof Dumpable other)) return false;
         return this.getUid().equals(other.getUid());
-        // if (!(o instanceof Blob blob)) return false;
-        // return uid.equals(Blob.uid);
     }
 
     /** Returns the hash code of this Blob, which is based on its UID.

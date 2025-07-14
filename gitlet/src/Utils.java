@@ -10,6 +10,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -79,6 +80,9 @@ class Utils {
             return false;
         }
     }
+    static boolean restrictedDelete(Path filePath) {
+        return restrictedDelete(filePath.toFile());
+    }
 
     /** Deletes the file named FILE if it exists and is not a directory.
      *  Returns true if FILE was deleted, and false otherwise.  Refuses
@@ -103,12 +107,18 @@ class Utils {
             throw new IllegalArgumentException(excp);
         }
     }
+    static byte[] readContents(Path path) {
+        return readContents(path.toFile());
+    }
 
     /** Return the entire contents of FILE as a String.  FILE must
      *  be a normal file.  Throws IllegalArgumentException
      *  in case of problems. */
     static String readContentsAsString(File file) {
         return new String(readContents(file), StandardCharsets.UTF_8);
+    }
+    static String readContentsAsString(Path path) {
+        return readContentsAsString(path.toFile());
     }
 
     /** Write the result of concatenating the bytes in CONTENTS to FILE,
@@ -135,6 +145,9 @@ class Utils {
             throw new IllegalArgumentException(excp);
         }
     }
+    static void writeContents(Path path, Object... contents) {
+        writeContents(path.toFile(), contents);
+    }
 
     /** Return an object of type T read from FILE, casting it to EXPECTEDCLASS.
      *  Throws IllegalArgumentException in case of problems. */
@@ -151,10 +164,17 @@ class Utils {
             throw new IllegalArgumentException(excp);
         }
     }
+    static <T extends Serializable> T readObject(Path path,
+                                                 Class<T> expectedClass) {
+        return readObject(path.toFile(), expectedClass);
+    }
 
     /** Write OBJ to FILE. */
     static void writeObject(File file, Serializable obj) {
         writeContents(file, serialize(obj));
+    }
+    static void writeObject(Path path, Serializable obj) {
+        writeObject(path.toFile(), obj);
     }
 
     /* DIRECTORIES */
@@ -180,6 +200,9 @@ class Utils {
             return Arrays.asList(files);
         }
     }
+    static List<String> plainFilenamesIn(Path dir) {
+        return plainFilenamesIn(dir.toFile());
+    }
 
     /** Returns a list of the names of all plain files in the directory DIR, in
      *  lexicographic order as Java Strings.  Returns null if DIR does
@@ -203,7 +226,9 @@ class Utils {
     static File join(File first, String... others) {
         return Paths.get(first.getPath(), others).toFile();
     }
-
+    static Path join(Path first, String... others){
+        return Paths.get(first.toString(), others);
+    }
 
     /* SERIALIZATION UTILITIES */
 
