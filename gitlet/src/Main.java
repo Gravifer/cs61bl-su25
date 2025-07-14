@@ -165,9 +165,10 @@ public class Main {
                 // Commit[] heads = Arrays.stream(repo.getBranches()).map(repo::getBranchCommit).toArray(Commit[]::new);
                 repo.log();
             }
-            case "global-log" -> {// like log but shows all commits in the repository, not just the current branch, not even all reachable commits.
-                Commit[] heads = Arrays.stream(repo.getBranches()).map(repo::getBranchCommit).toArray(Commit[]::new);
-                repo.log(repo.getCommitHistory(heads));
+            case "global-log" -> {// like log but shows ALL commits in the repository, not just the current branch, not even all REACHABLE commits.
+                // Commit[] heads = Arrays.stream(repo.getBranches()).map(repo::getBranchCommit).toArray(Commit[]::new);
+                Commit[] commits = Arrays.stream(repo.allCommitUids.toArray(new String[0])).map(Commit::getByUid).toArray(Commit[]::new);
+                repo.log(repo.getCommitHistory(commits));
             }
             case "find" ->
                     throw todo;

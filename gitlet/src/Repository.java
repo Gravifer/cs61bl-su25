@@ -1,12 +1,9 @@
 package gitlet;
 
 // DONE: any imports you need here
-import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.nio.file.*;
@@ -267,7 +264,6 @@ public class Repository {
      */
     public static Repository reinstantiate() {
         // * reinstantiate the repository from the current HEAD
-        // * this method should read the HEAD file and restore the repository to that state
         Repository repo;
         if (Files.exists(INDX_FILE)) {
             repo = new Repository(readObject(INDX_FILE, StagingArea.class));
@@ -283,6 +279,13 @@ public class Repository {
         repo.HEAD = resolveHead();
         if (Files.exists(DESC_FILE)) {
             repo.description = readContentsAsString(DESC_FILE);
+        }
+        Path globalLogFile = GITLET_DIR.resolve("global-log-commits.ser");
+        if (Files.exists(globalLogFile)) {
+            var commitList = readObject(globalLogFile, ArrayList.class);
+            repo.allCommitUids = new HashSet<String>(commitList);
+        } else {
+            repo.allCommitUids = new HashSet<String>();
         }
         return repo;
     }
@@ -344,6 +347,7 @@ public class Repository {
         writeObject(INDX_FILE, stagingArea);
     }
 
+    HashSet<String> allCommitUids = new HashSet<>(); // used to track all commit UIDs for the current branch
     /** Commits the staged files to the repository.
      *  <p>
      *  This method creates a new commit with the staged files and the given commit message.
@@ -381,6 +385,8 @@ public class Repository {
         Commit newCommit = new Commit(message, HEAD, stagingArea.getStagedFileBlobs(), stagingArea.getRemovedFileBlobs(), true); // per spec, empty commits are the default
         // * update the HEAD pointer to point to the new commit
         HEAD = newCommit.getUid();
+        allCommitUids.add(HEAD); // track all commit UIDs for the current branch
+        writeObject(GITLET_DIR.resolve("global-log-commits.ser"), new ArrayList<>(allCommitUids));
         try {
             // if the HEAD file contains a ref, we should update it to point to the new commit
             if (Files.exists(HEAD_FILE)) {
