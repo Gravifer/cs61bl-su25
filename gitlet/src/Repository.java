@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.nio.file.*;
 import java.nio.file.attribute.*;
+import java.util.Set;
 
 import static gitlet.Utils.*;
 
@@ -58,6 +59,66 @@ public class Repository {
     public String getHead() {
         return HEAD;
     }
+    /**
+     * The current HEAD commit object.
+     * This is transient and not persisted; it is rebuilt on demand.
+     */
+    protected transient Commit HeadCommit;
+    /**
+     * Returns the current HEAD commit object, using the transient cache if available.
+     * If HeadCommit is null, it will be loaded from HEAD and cached.
+     * Always updates the cache to ensure consistency.
+     */
+    public Commit getHeadCommit() {
+        if (HEAD == null || HEAD.isEmpty()) return null;
+        if (HeadCommit == null || !HeadCommit.getUid().equals(HEAD)) {
+            HeadCommit = Commit.getByUid(HEAD);
+        }
+        return HeadCommit;
+    }
+    public static String resolveHead(File file) {
+        // * resolve the HEAD pointer to a full UID if it is a prefix
+        if (!file.exists()) {
+            throw error("HEAD file does not exist.");
+        }
+        String headContent = readContentsAsString(file);
+        if (headContent.startsWith("ref: ")) {
+            // * if HEAD points to a ref, read the ref file and return its content
+            String refPath = headContent.substring(5).trim();
+            File refFile = join(GITLET_DIR, refPath);
+            if (!refFile.exists()) {
+                throw error("Ref file does not exist: " + refPath);
+            }
+            return readContentsAsString(refFile);
+        } else {
+            // * if HEAD points to a commit, return the commit UID
+            return headContent.trim();
+        }
+    }
+    public static String resolveHead(){
+        return resolveHead(HEAD_FILE);
+    }
+    protected void updateHead(Commit newHead){
+        // * update the HEAD pointer to point to the new commit
+        this.HEAD = newHead.getUid();
+        if (HEAD_FILE.exists()) {
+            writeContents(HEAD_FILE, HEAD); // write the new HEAD UID to the HEAD file
+        } else {
+            throw error("HEAD file does not exist.");
+        }
+        this.HeadCommit = newHead; // update the HeadCommit reference
+    }
+    protected void updateHead(String newHeadUid){
+        // * update the HEAD pointer to point to the new commit
+        Commit newHead = Commit.getByUid(newHeadUid);
+        this.HEAD = newHeadUid;
+        if (HEAD_FILE.exists()) {
+            writeContents(HEAD_FILE, HEAD); // write the new HEAD UID to the HEAD file
+        } else {
+            throw error("HEAD file does not exist.");
+        }
+        this.HeadCommit = newHead; // update the HeadCommit reference
+    }
 
     /** The index file, aka "current directory cache",
      * contains the serialization of blobs representing staged files. */
@@ -74,6 +135,7 @@ public class Repository {
     /** The description file saves the description of the repo */
     public static final File DESC_FILE = join(GITLET_DIR, "description");
     protected String description = "Unnamed repository; edit this file 'description' to name the repository.\n";
+
 
     public Repository() {
         // * constructor initializes the repository
@@ -184,28 +246,6 @@ public class Repository {
         init_db("main", "main");
     }
 
-    public static String resolveHead(File file) {
-        // * resolve the HEAD pointer to a full UID if it is a prefix
-        if (!file.exists()) {
-            throw error("HEAD file does not exist.");
-        }
-        String headContent = readContentsAsString(file);
-        if (headContent.startsWith("ref: ")) {
-            // * if HEAD points to a ref, read the ref file and return its content
-            String refPath = headContent.substring(5).trim();
-            File refFile = join(GITLET_DIR, refPath);
-            if (!refFile.exists()) {
-                throw error("Ref file does not exist: " + refPath);
-            }
-            return readContentsAsString(refFile);
-        } else {
-            // * if HEAD points to a commit, return the commit UID
-            return headContent.trim();
-        }
-    }
-    public static String resolveHead(){
-        return resolveHead(HEAD_FILE);
-    }
 
     /** Reinstantiates the repository from the current HEAD.
      *  <p>
@@ -400,7 +440,7 @@ public class Repository {
      */
     public void log() {
         // * print the commit history
-        Commit currentCommit = Commit.getByUid(HEAD);
+        Commit currentCommit = getHeadCommit(); // Use cached HEAD commit
         Commit initialCommit = Commit.initialCommit();
         DateTimeFormatter formatter = DateTimeFormatter // Format timestamp as local time with zone
                 .ofPattern("EEE MMM d HH:mm:ss yyyy XX", Locale.US).withZone(ZoneId.systemDefault()); // Local, according to Berkeley
@@ -512,16 +552,16 @@ public class Repository {
         }
         System.out.println();
         System.out.println("=== Untracked Files ===");
-        // * print the untracked files
+        // Print untracked files: files in CWD that are not staged, not unstaged, not removed, and not tracked by the current commit
+        Commit currentCommit = getHeadCommit(); // Use cached HEAD commit
+        Set<String> trackedFiles = currentCommit.getFileBlobs().keySet();
         File[] untrackedFiles = CWD.listFiles((dir, name) -> !name.equals(".gitlet")
                 && !stagingArea.stagedFiles.containsKey(name)
                 && !stagingArea.unstagedFiles.containsKey(name)
-                && !stagingArea.removedFiles.containsKey(name));
+                && !stagingArea.removedFiles.containsKey(name)
+                && !trackedFiles.contains(name));
         if (untrackedFiles != null && untrackedFiles.length > 0) {
-            // for (File file : untrackedFiles) {
-            //     System.out.println(file.getName());
-            // }
-            // files should be lexicographically sorted
+            // Sort files lexicographically
             Arrays.stream(untrackedFiles).sorted(File::compareTo).forEach(file -> System.out.println(file.getName()));
 
         }
@@ -562,7 +602,7 @@ public class Repository {
             return;
         }
         // * if the file is tracked in the current commit, stage it for removal
-        Commit currentCommit = Commit.getByUid(HEAD);
+        Commit currentCommit = getHeadCommit(); // Use cached HEAD commit
         if (currentCommit.getFileBlobs().containsKey(filename)) {
             stagingArea.removedFiles.put(filename, new StagingArea.fileInfo(filename, currentCommit.getFileBlobs().get(filename),
                     Instant.now().toEpochMilli(), Instant.now().toEpochMilli(), file.length()));
