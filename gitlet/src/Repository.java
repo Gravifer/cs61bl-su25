@@ -384,8 +384,27 @@ public class Repository {
         // * create a new commit with the staged files and the given commit message
         String[] parents = new String[otherParents.length + 1];
         parents[0] = HEAD; // the first parent is the current HEAD
+        Commit currentCommit = getHeadCommit();
         System.arraycopy(otherParents, 0, parents, 1, otherParents.length);// add the other parents
         Commit newCommit = new Commit(message, parents, stagingArea.getStagedFileBlobs(), stagingArea.getRemovedFileBlobs(), true); // per spec, empty commits are the default
+
+        // // construct a map comparing newCommit with HEAD
+        Map<String, String> addedFiles = new HashMap<>(newCommit.getFileBlobs());
+        Map<String, String> removedFiles = new HashMap<>(currentCommit.getFileBlobs());
+        Map<String, String> changedFiles = new HashMap<>();
+        for (Map.Entry<String, String> entry : currentCommit.getFileBlobs().entrySet()) {
+            addedFiles.remove(entry.getKey(), entry.getValue()); // if both file name and blob UID are not changed, it is not removed or modified
+        }
+        for (Map.Entry<String, String> entry : newCommit.getFileBlobs().entrySet()) {
+            removedFiles.remove(entry.getKey(), entry.getValue()); // if both file name and blob UID are not changed, it is not added or modified
+        }
+        // if a filename exists in both currentCommit and newCommit, but the blob UID is different, it is a changed file
+        for (Map.Entry<String, String> entry : currentCommit.getFileBlobs().entrySet()) {
+            if (newCommit.getFileBlobs().containsKey(entry.getKey()) && !newCommit.getFileBlobs().get(entry.getKey()).equals(entry.getValue())) {
+                changedFiles.put(entry.getKey(), newCommit.getFileBlobs().get(entry.getKey()));
+            }
+        }
+
         // * update the HEAD pointer to point to the new commit
         HEAD = newCommit.getUid();
         allCommitUids.add(HEAD); // track all commit UIDs for the current branch
@@ -412,7 +431,28 @@ public class Repository {
         }
         // Per spec, no output on System.out, but we print the commit briefing to stderr
         System.err.println("[" + currentBranch() + " " + HEAD.substring(0, 7) + "] " + message);
-        System.err.println(newCommit.getFileBlobs().size() + " files changed"); // summarize the changes
+        // System.err.println(newCommit.getFileBlobs().size() + " files changed"); // summarize the changes
+
+        // summarize the differences from the parent commit
+        // if (!addedFiles.isEmpty()) {
+        //     System.err.println(addedFiles.size() + " files added:");
+        //     for (String fileName : addedFiles.keySet()) {
+        //         System.err.println("  " + fileName);
+        //     }
+        // }
+        // if (!removedFiles.isEmpty()) {
+        //     System.err.println(removedFiles.size() + " files removed:");
+        //     for (String fileName : removedFiles.keySet()) {
+        //         System.err.println("  " + fileName);
+        //     }
+        // }
+        // if (!changedFiles.isEmpty()) {
+        //     System.err.println(changedFiles.size() + " files changed:");
+        //     for (Map.Entry<String, String> entry : changedFiles.entrySet()) {
+        //         System.err.println("  " + entry.getKey() + " (was: " + entry.getValue().substring(0, 7) + ")");
+        //     }
+        // }
+
         // * clear the staging area
         stagingArea.stagedFiles.clear();
         stagingArea.removedFiles.clear();
@@ -425,9 +465,14 @@ public class Repository {
     public void mergeCommit(Commit commitToMerge, String message) {
         // 1. Find the split point (latest common ancestor)
         Commit headCommit = getHeadCommit();
-        Commit splitPoint = Commit.findSplitPoint(headCommit, commitToMerge);
+        Commit splitPoint = Commit.findLCA(headCommit, commitToMerge);
         if (splitPoint == null) {
             System.out.println("No split point found. Aborting merge.");
+            return;
+        }
+        // check if commitToMerge is an ancestor of the current HEAD.
+        if (commitToMerge.isAncestorOf(headCommit)) {
+            System.err.println("Incoming commit is an ancestor of the current HEAD. Nothing to do.");
             return;
         }
         // check for staged but not commited additions and removals before merge
@@ -1220,6 +1265,19 @@ public class Repository {
         Commit commitToMerge = Commit.getByUid(branchCommitUid);
         if (commitToMerge == null) {
             System.out.println("No commit found for branch: " + branch);
+            return;
+        }
+        // check if commitToMerge is an ancestor of the current HEAD.
+        if (commitToMerge.isAncestorOf(getHeadCommit())) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            return;
+        }
+        // check if fast-forward is possible
+        if (getHeadCommit().isAncestorOf(commitToMerge)) {
+            // fast-forward the current branch to the commitToMerge
+            writeContents(branchFile, HEAD);
+            switchBranch(branch);
+            System.out.println("Current branch fast-forwarded.");
             return;
         }
         mergeCommit(commitToMerge, String.format("Merged %s into %s.", branch, currentBranch()));

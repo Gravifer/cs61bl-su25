@@ -437,7 +437,7 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
      * @param c2 The second commit (usually the branch to merge)
      * @return The split point commit, or null if none found
      */
-    public static Commit findSplitPoint(Commit c1, Commit c2) {
+    public static Commit findLCA(Commit c1, Commit c2) {
         // Collect all ancestors of c1
         Set<String> ancestors1 = new HashSet<>();
         Deque<Commit> stack1 = new ArrayDeque<>();
@@ -470,5 +470,24 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
             }
         }
         return null;
+    }
+
+    public boolean isAncestorOf(Commit other) {
+        // Traverse the commit graph from other to see if this commit is an ancestor
+        Deque<Commit> stack = new ArrayDeque<>();
+        stack.push(other);
+        while (!stack.isEmpty()) {
+            Commit current = stack.pop();
+            if (current == null) continue;
+            if (this.equals(current)) {
+                return true; // Found the ancestor
+            }
+            if (current.parents != null) {
+                for (String parentUid : current.parents) {
+                    stack.push(Commit.getByUid(parentUid));
+                }
+            }
+        }
+        return false; // Not found in the ancestry
     }
 }

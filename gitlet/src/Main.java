@@ -73,9 +73,15 @@ public class Main {
                 Repository.init_db(); // DONE: handle the `init` command
                 repo = Repository.reinstantiate();
                 if (repo != null) {
+                    // assert that the default branch points to the initial commit, and so does HEAD
+                    if (!repo.getBranchCommit(repo.defaultBranch).getUid().equals(Commit.initialCommit().getUid()) || !repo.HEAD.equals(Commit.initialCommit().getUid())) {
+                        System.err.println("repo.getBranchCommit(repo.defaultBranch).getUid(): " + repo.getBranchCommit(repo.defaultBranch).getUid());
+                        System.err.println("repo.HEAD: " + repo.HEAD);
+                        System.err.println("Commit.initialCommit().getUid(): " + Commit.initialCommit().getUid());
+                        throw new IllegalStateException("Repo initialization corrupted.");
+                    }
                     System.err.println("Initialized repolet with default branch: " + repo.defaultBranch);
-                    System.err.println("\t      -> " + repo.getBranchCommit(repo.defaultBranch).getUid()); // Repository.resolveHead(join(Repository.BRC_DIR, repo.defaultBranch)));
-                    System.err.println("\t HEAD -> " + repo.HEAD);
+                    System.err.println("\t HEAD -> " + repo.HEAD); // Repository.resolveHead(join(Repository.BRC_DIR, repo.defaultBranch)));
                 } else {
                     System.out.println("Failed to initialize Gitlet repository.");
                 }
