@@ -165,13 +165,44 @@ public class Main {
                 // Commit[] heads = Arrays.stream(repo.getBranches()).map(repo::getBranchCommit).toArray(Commit[]::new);
                 repo.log();
             }
-            case "global-log" -> {// like log but shows ALL commits in the repository, not just the current branch, not even all REACHABLE commits.
+            case "global-log" -> { // like log but shows ALL commits in the repository, not just the current branch, not even all REACHABLE commits.
                 // Commit[] heads = Arrays.stream(repo.getBranches()).map(repo::getBranchCommit).toArray(Commit[]::new);
                 Commit[] commits = Arrays.stream(repo.allCommitUids.toArray(new String[0])).map(Commit::getByUid).toArray(Commit[]::new);
                 repo.log(repo.getCommitHistory(commits));
             }
-            case "find" ->
-                    throw todo;
+            case "find" -> {
+                // Prints out the ids of all commits that have the given commit message, one per line.
+                // If there are multiple such commits, it prints the ids out on separate lines.
+                // The commit message is a single operand; to indicate a multiword message,
+                // put the operand in quotation marks, as for the {@code commit} command.
+                // Hint: the hint for this command is the same as the one for {@code global-log}.
+                // Failure cases: If no such commit exists, print the error message {@code Found no commit with that message.}
+                Commit[] commits = Arrays.stream(repo.allCommitUids.toArray(new String[0])).map(Commit::getByUid).toArray(Commit[]::new);
+                if (args.length == 0) {
+                    System.out.println("Please enter a commit message to find.");
+                    return repo;
+                }
+                String message = String.join(" ", args);
+                System.err.println("message = " + message);
+                // filter the commits by message
+                if (message .equals("initial commit")){
+                    Commit commit = Commit.initialCommit();
+                    System.err.println(commit.message + " (" + commit.getUid() + ")");
+                    System.out.println(commit.getUid());
+                } else {
+                    Commit[] foundCommits = Arrays.stream(commits)
+                            .filter(commit -> commit.message.equals(message))
+                            .toArray(Commit[]::new);
+                    if (foundCommits.length == 0) {
+                        System.out.println("Found no commit with that message.");
+                    } else {
+                        for (Commit commit : foundCommits) {
+                            System.err.println(commit.message + " (" + commit.getUid() + ")");
+                            System.out.println(commit.getUid());
+                        }
+                    }
+                }
+            }
             case "status" -> {
                 if (repo != null) {
                     repo.status();
