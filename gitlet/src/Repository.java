@@ -434,24 +434,26 @@ public class Repository {
         // System.err.println(newCommit.getFileBlobs().size() + " files changed"); // summarize the changes
 
         // summarize the differences from the parent commit
-        // if (!addedFiles.isEmpty()) {
-        //     System.err.println(addedFiles.size() + " files added:");
-        //     for (String fileName : addedFiles.keySet()) {
-        //         System.err.println("  " + fileName);
-        //     }
-        // }
-        // if (!removedFiles.isEmpty()) {
-        //     System.err.println(removedFiles.size() + " files removed:");
-        //     for (String fileName : removedFiles.keySet()) {
-        //         System.err.println("  " + fileName);
-        //     }
-        // }
-        // if (!changedFiles.isEmpty()) {
-        //     System.err.println(changedFiles.size() + " files changed:");
-        //     for (Map.Entry<String, String> entry : changedFiles.entrySet()) {
-        //         System.err.println("  " + entry.getKey() + " (was: " + entry.getValue().substring(0, 7) + ")");
-        //     }
-        // }
+        if (!addedFiles.isEmpty()) {
+            System.err.print(addedFiles.size() + " file(s) added:  ");
+            for (String fileName : addedFiles.keySet()) {
+                System.err.print("  " + fileName);
+            }
+            System.err.println();
+        }
+        if (!removedFiles.isEmpty()) {
+            System.err.print(removedFiles.size() + " file(s) removed:");
+            for (String fileName : removedFiles.keySet()) {
+                System.err.print("  " + fileName);
+            }
+            System.err.println();
+        }
+        if (!changedFiles.isEmpty()) {
+            System.err.println(changedFiles.size() + " file(s) changed:");
+            for (Map.Entry<String, String> entry : changedFiles.entrySet()) {
+                System.err.println("  " + entry.getKey() + " (was: " + entry.getValue().substring(0, 7) + ")");
+            }
+        }
 
         // * clear the staging area
         stagingArea.stagedFiles.clear();
@@ -468,28 +470,39 @@ public class Repository {
         Commit splitPoint = Commit.findLCA(headCommit, commitToMerge);
         if (splitPoint == null) {
             System.out.println("No split point found. Aborting merge.");
+            System.err.println("No split point found. Aborting merge.");
             return;
         }
         // check if commitToMerge is an ancestor of the current HEAD.
-        if (commitToMerge.isAncestorOf(headCommit)) {
+        if (commitToMerge.isLinearAncestorOf(headCommit)) {
             System.err.println("Incoming commit is an ancestor of the current HEAD. Nothing to do.");
             return;
         }
         // check for staged but not commited additions and removals before merge
         if (!stagingArea.stagedFiles.isEmpty() || !stagingArea.removedFiles.isEmpty()) {
             System.out.println("You have uncommitted changes.");
+            System.err.println("Merge failed due to uncommitted changes.");
+            System.err.print("[+]:");
+            for (String fileName : stagingArea.stagedFiles.keySet()) {
+                System.err.print(" " + fileName);
+            }
+            System.err.print("[-]:");
+            for (String fileName : stagingArea.removedFiles.keySet()) {
+                System.err.print(" " + fileName);
+            }
             return;
         }
         // check for untracked files before merge
         Set<String> trackedFiles = headCommit.getFileBlobs().keySet();
         Set<String> stagedFiles = stagingArea.stagedFiles.keySet();
         for (String fileName : Utils.plainFilenamesIn(CWD)) {
-            if (!trackedFiles.contains(fileName) && !stagedFiles.contains(fileName)) {
+            if (!trackedFiles.contains(fileName) ) { // && !stagedFiles.contains(fileName)) {
                 boolean willBeOverwrittenOrDeleted =
                     commitToMerge.getFileBlobs().containsKey(fileName) ||
                     (splitPoint.getFileBlobs().containsKey(fileName) && !commitToMerge.getFileBlobs().containsKey(fileName));
                 if (willBeOverwrittenOrDeleted) {
                     System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                    System.err.println("Untracked file " + fileName + " in the way; abort.");
                     return;
                 }
             }
@@ -547,7 +560,7 @@ public class Repository {
     }
     public void mergeCommit(Commit commitToMerge) {
         // * commit with a default message
-        mergeCommit(commitToMerge, String.format("Merge commit %s into %s", commitToMerge.getUid().substring(0, 7), getHeadCommit().getUid().substring(0, 7)));
+        mergeCommit(commitToMerge, String.format("Merged commit %s into %s", commitToMerge.getUid().substring(0, 7), getHeadCommit().getUid().substring(0, 7)));
     }
 
     /** Restores a file from the current commit or the staging area.
@@ -795,7 +808,7 @@ public class Repository {
                     Instant.now().toEpochMilli(), Instant.now().toEpochMilli(), fileLength));
             writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
             if (restrictedDelete(file)) { // remove the file from the working directory
-                System.err.println("Removed " + filename + ".");
+                // System.err.println("Removed " + filename + ".");
             } else {
                 System.err.println("Failed to remove " + filename + ". It may not be writable or does not exist.");
             }
@@ -1245,6 +1258,8 @@ public class Repository {
      *  perform this check before doing anything else.
      */
     public void mergeBranch(String branch) {
+        // // print the stagingArea onto STDERR to get a peek
+        // System.err.println("\u001B[36mStaged Files: " + stagingArea.stagedFiles.keySet() + "\u001B[0m");
         // * merge the given branch into the current branch
         if (isDetachedHead()){
             throw error("Cannot merge a branch when HEAD is detached.");
@@ -1254,6 +1269,7 @@ public class Repository {
         }
         if (branch.equals(currentBranch())) {
             System.out.println("Cannot merge a branch with itself.");
+            System.err.println("Merging a branch with itself; nothing to do.");
             return;
         }
         Path branchFile = BRC_DIR.resolve(branch);
@@ -1267,19 +1283,36 @@ public class Repository {
             System.out.println("No commit found for branch: " + branch);
             return;
         }
+        // check for staged but not commited additions and removals before merge
+        if (!stagingArea.stagedFiles.isEmpty() || !stagingArea.removedFiles.isEmpty()) {
+            System.out.println("You have uncommitted changes.");
+            System.err.println("Merge failed due to uncommitted changes.");
+            System.err.print("[+]:");
+            for (String fileName : stagingArea.stagedFiles.keySet()) {
+                System.err.print(" " + fileName);
+            }
+            System.err.print("[-]:");
+            for (String fileName : stagingArea.removedFiles.keySet()) {
+                System.err.print(" " + fileName);
+            }
+            return;
+        }
         // check if commitToMerge is an ancestor of the current HEAD.
-        if (commitToMerge.isAncestorOf(getHeadCommit())) {
+        if (commitToMerge.isLinearAncestorOf(getHeadCommit())) {
             System.out.println("Given branch is an ancestor of the current branch.");
+            System.err.println("Given branch is an ancestor of the current branch.");
             return;
         }
         // check if fast-forward is possible
-        if (getHeadCommit().isAncestorOf(commitToMerge)) {
+        if (getHeadCommit().isLinearAncestorOf(commitToMerge)) {
             // fast-forward the current branch to the commitToMerge
             writeContents(branchFile, HEAD);
             switchBranch(branch);
             System.out.println("Current branch fast-forwarded.");
+            System.err.println("Current branch fast-forwarded.");
             return;
         }
+        System.err.printf("Merging %s into %s.\n", branch, currentBranch());
         mergeCommit(commitToMerge, String.format("Merged %s into %s.", branch, currentBranch()));
         // update branchFile
         writeContents(branchFile, HEAD); // update the branch file to point to the new HEAD commit

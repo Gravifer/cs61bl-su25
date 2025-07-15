@@ -264,6 +264,9 @@ public class GitletTests {
      */
     public static String getOutput() {
         String ret = OUT.toString();
+        if (ret.length() > 0) {
+            OG_OUT.print("\u001B[34m" + ret + "\u001B[0m");
+        }
         OUT.reset();
         return ret;
     }

@@ -472,7 +472,7 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
         return null;
     }
 
-    public boolean isAncestorOf(Commit other) {
+    public boolean isLinearAncestorOf(Commit other) {
         // Traverse the commit graph from other to see if this commit is an ancestor
         Deque<Commit> stack = new ArrayDeque<>();
         stack.push(other);
@@ -482,10 +482,11 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
             if (this.equals(current)) {
                 return true; // Found the ancestor
             }
-            if (current.parents != null) {
-                for (String parentUid : current.parents) {
-                    stack.push(Commit.getByUid(parentUid));
-                }
+            if (current.parents != null && current.parents.length > 0) {
+                // for (String parentUid : current.parents) {
+                //     stack.push(Commit.getByUid(parentUid));
+                // }
+                stack.push(Commit.getByUid(current.parents[0])); // Only check the first parent for linear history; per spec, repeatedly merging in some non-primary ancestor should be allowed.
             }
         }
         return false; // Not found in the ancestry
