@@ -10,6 +10,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -26,7 +27,7 @@ import java.util.List;
  *
  *  @author P. N. Hilfinger
  */
-class Utils {
+public class Utils {
 
     /** The length of a complete SHA-1 UID as a hexadecimal numeral. */
     static final int UID_LENGTH = 40;
@@ -79,6 +80,9 @@ class Utils {
             return false;
         }
     }
+    static boolean restrictedDelete(Path filePath) {
+        return restrictedDelete(filePath.toFile());
+    }
 
     /** Deletes the file named FILE if it exists and is not a directory.
      *  Returns true if FILE was deleted, and false otherwise.  Refuses
@@ -103,12 +107,18 @@ class Utils {
             throw new IllegalArgumentException(excp);
         }
     }
+    static byte[] readContents(Path path) {
+        return readContents(path.toFile());
+    }
 
     /** Return the entire contents of FILE as a String.  FILE must
      *  be a normal file.  Throws IllegalArgumentException
      *  in case of problems. */
     static String readContentsAsString(File file) {
         return new String(readContents(file), StandardCharsets.UTF_8);
+    }
+    static String readContentsAsString(Path path) {
+        return readContentsAsString(path.toFile());
     }
 
     /** Write the result of concatenating the bytes in CONTENTS to FILE,
@@ -135,6 +145,9 @@ class Utils {
             throw new IllegalArgumentException(excp);
         }
     }
+    static void writeContents(Path path, Object... contents) {
+        writeContents(path.toFile(), contents);
+    }
 
     /** Return an object of type T read from FILE, casting it to EXPECTEDCLASS.
      *  Throws IllegalArgumentException in case of problems. */
@@ -151,10 +164,17 @@ class Utils {
             throw new IllegalArgumentException(excp);
         }
     }
+    static <T extends Serializable> T readObject(Path path,
+                                                 Class<T> expectedClass) {
+        return readObject(path.toFile(), expectedClass);
+    }
 
     /** Write OBJ to FILE. */
     static void writeObject(File file, Serializable obj) {
         writeContents(file, serialize(obj));
+    }
+    static void writeObject(Path path, Serializable obj) {
+        writeObject(path.toFile(), obj);
     }
 
     /* DIRECTORIES */
@@ -180,6 +200,9 @@ class Utils {
             return Arrays.asList(files);
         }
     }
+    static List<String> plainFilenamesIn(Path dir) {
+        return plainFilenamesIn(dir.toFile());
+    }
 
     /** Returns a list of the names of all plain files in the directory DIR, in
      *  lexicographic order as Java Strings.  Returns null if DIR does
@@ -203,7 +226,9 @@ class Utils {
     static File join(File first, String... others) {
         return Paths.get(first.getPath(), others).toFile();
     }
-
+    static Path join(Path first, String... others){
+        return Paths.get(first.toString(), others);
+    }
 
     /* SERIALIZATION UTILITIES */
 
@@ -216,7 +241,7 @@ class Utils {
             objectStream.close();
             return stream.toByteArray();
         } catch (IOException excp) {
-            throw error("Internal error serializing commit.");
+            throw error("Internal error serializing ", obj);
         }
     }
 
@@ -235,5 +260,62 @@ class Utils {
     static void message(String msg, Object... args) {
         System.out.printf(msg, args);
         System.out.println();
+    }
+
+    /**
+     * Logging utility with color and stream methods.
+     *
+     * @see <a href="https://gist.github.com/JBlond/2fea43a3049b38287e5e9cefc87b2124">...</a>
+     */
+    public static class Logging {
+        public static final Logger info = new Logger("INFO",    "\u001B[36m"); // Cyan
+        public static final Logger dbg  = new Logger("DEBUG",   "\u001B[33m"); // Yellow
+        public static final Logger warn = new Logger("WARNING", "\u001B[35m"); // Purple
+        public static final Logger err  = new Logger("ERROR",   "\u001B[31m"); // Red
+
+        public static class Logger {
+            private final String level;
+            private final String color;
+            private final String reset = "\u001B[0m";
+            public Logger(String level, String color) {
+                this.level = level;
+                this.color = color;
+            }
+            public void println(String msg) {
+                System.err.println(color + msg + reset);
+            }
+            public void println() {
+                System.err.println();
+            }
+            public void print(String msg) {
+                System.err.print(color + msg + reset);
+            }
+            public void printf(String format, Object... args) {
+                System.err.print(color + String.format(format, args) + reset);
+            }
+            public void printlnf(String format, Object... args) {
+                System.err.println(color + "[" + level + "] " + String.format(format, args) + reset);
+            }
+            public void flush() {
+                System.err.flush();
+            }
+            public void close() {
+                // System.err cannot be closed, but method provided for API completeness
+            }
+            // You can extend with more methods: write, append, etc.
+        }
+    }
+
+    public static void main(String[] args) {
+        // Example usage of the Utils class
+        File testFile = new File("test.txt");
+        writeContents(testFile, "Hello, World!");
+        System.out.println("Contents of test.txt: " + readContentsAsString(testFile));
+
+        String hash = sha1("Hello", "World");
+        System.out.println("SHA-1 hash: " + hash);
+
+        // Clean up
+        restrictedDelete(testFile);
     }
 }
