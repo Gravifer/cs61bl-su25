@@ -181,17 +181,17 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
      * Creates a new Commit with the given message.
      *
      * @param message           the commit message
-     * @param parent            the UID of the parent commit
+     * @param parents           the UIDs of the parent commits
      * @param fileBlobsToAdd    the map of staged files (file paths to their Blob UIDs)
      * @param fileBlobsToRemove the map of removed files (file paths to their Blob UIDs); can be omitted
      * @param allowEmpty        whether to allow an empty commit (no files); default to false if omitted
      */
-    public Commit(String message, String parent, Map<String, String> fileBlobsToAdd, Map<String, String> fileBlobsToRemove, boolean allowEmpty) {
+    public Commit(String message, String[] parents, Map<String, String> fileBlobsToAdd, Map<String, String> fileBlobsToRemove, boolean allowEmpty) {
         this.isEmpty = fileBlobsToAdd == null || fileBlobsToAdd.isEmpty();
         if (!allowEmpty && isEmpty) {
             throw error("Nothing to commit.");
         }
-        this.parents = new String[]{parent};
+        this.parents = parents; // new String[]{parent};
         initParentsMap();
         Commit parentCommit = getParentCommit(); // Commit.getByUid() checks if the parent commit is initial, so no need to check here
         this.timestamp = Instant.now(); // use current time
@@ -214,6 +214,9 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
         }
         // * persist the commit itself
         this.persist();
+    }
+    public Commit(String message, String parent, Map<String, String> fileBlobsToAdd, Map<String, String> fileBlobsToRemove, boolean allowEmpty) {
+        this(message, new String[]{parent}, fileBlobsToAdd, fileBlobsToRemove, allowEmpty);
     }
     public Commit(String message, String parent, Map<String, String> fileBlobsToAdd, boolean allowEmpty) {
         this(message, parent, fileBlobsToAdd, null, allowEmpty);
@@ -425,5 +428,47 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
             case Date date -> date.getTime();
             default -> throw new IllegalArgumentException("Unsupported type for getTime: " + o.getClass().getName());
         };
+    }
+
+    /**
+     * Finds the latest common ancestor (split point) of two commits.
+     * This is used for merge operations to determine the base commit.
+     * @param c1 The first commit (usually HEAD)
+     * @param c2 The second commit (usually the branch to merge)
+     * @return The split point commit, or null if none found
+     */
+    public static Commit findSplitPoint(Commit c1, Commit c2) {
+        // Collect all ancestors of c1
+        Set<String> ancestors1 = new HashSet<>();
+        Deque<Commit> stack1 = new ArrayDeque<>();
+        stack1.push(c1);
+        while (!stack1.isEmpty()) {
+            Commit current = stack1.pop();
+            if (current == null || ancestors1.contains(current.getUid())) continue;
+            ancestors1.add(current.getUid());
+            if (current.parents != null) {
+                for (String parentUid : current.parents) {
+                    stack1.push(Commit.getByUid(parentUid));
+                }
+            }
+        }
+        // Traverse ancestors of c2, return first found in ancestors1
+        Deque<Commit> stack2 = new ArrayDeque<>();
+        Set<String> visited2 = new HashSet<>();
+        stack2.push(c2);
+        while (!stack2.isEmpty()) {
+            Commit current = stack2.pop();
+            if (current == null || visited2.contains(current.getUid())) continue;
+            if (ancestors1.contains(current.getUid())) {
+                return current;
+            }
+            visited2.add(current.getUid());
+            if (current.parents != null) {
+                for (String parentUid : current.parents) {
+                    stack2.push(Commit.getByUid(parentUid));
+                }
+            }
+        }
+        return null;
     }
 }
