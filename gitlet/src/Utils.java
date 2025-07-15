@@ -27,7 +27,7 @@ import java.util.List;
  *
  *  @author P. N. Hilfinger
  */
-class Utils {
+public class Utils {
 
     /** The length of a complete SHA-1 UID as a hexadecimal numeral. */
     static final int UID_LENGTH = 40;
@@ -259,6 +259,50 @@ class Utils {
     static void message(String msg, Object... args) {
         System.out.printf(msg, args);
         System.out.println();
+    }
+
+    /**
+     * Logging utility with color and stream methods.
+     *
+     * @see <a href="https://gist.github.com/JBlond/2fea43a3049b38287e5e9cefc87b2124">...</a>
+     */
+    public static class Logging {
+        public static final Logger info = new Logger("INFO",    "\u001B[36m"); // Cyan
+        public static final Logger dbg  = new Logger("DEBUG",   "\u001B[33m"); // Yellow
+        public static final Logger warn = new Logger("WARNING", "\u001B[35m"); // Purple
+        public static final Logger err  = new Logger("ERROR",   "\u001B[31m"); // Red
+
+        public static class Logger {
+            private final String level;
+            private final String color;
+            private final String reset = "\u001B[0m";
+            public Logger(String level, String color) {
+                this.level = level;
+                this.color = color;
+            }
+            public void println(String msg) {
+                System.err.println(color + msg + reset);
+            }
+            public void println() {
+                System.err.println();
+            }
+            public void print(String msg) {
+                System.err.print(color + msg + reset);
+            }
+            public void printf(String format, Object... args) {
+                System.err.print(color + String.format(format, args) + reset);
+            }
+            public void printlnf(String format, Object... args) {
+                System.err.println(color + "[" + level + "] " + String.format(format, args) + reset);
+            }
+            public void flush() {
+                System.err.flush();
+            }
+            public void close() {
+                // System.err cannot be closed, but method provided for API completeness
+            }
+            // You can extend with more methods: write, append, etc.
+        }
     }
 
     public static void main(String[] args) {

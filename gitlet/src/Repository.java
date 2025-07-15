@@ -75,7 +75,7 @@ public class Repository {
     }
     public Commit getBranchCommit(String branch) {
         String commitUid = resolveHead(BRC_DIR.resolve(branch));
-        // System.err.println("Resolving head commit for branch: " + branch + " -> " + commitUid);
+        // Logging.dbg.println("Resolving head commit for branch: " + branch + " -> " + commitUid);
         return Commit.getByUid(commitUid);
     }
     public static String resolveHead(Path file) {
@@ -243,9 +243,9 @@ public class Repository {
             }
             // get the relative path from the GITLET_DIR to the branch file
             writeContents(Repository.HEAD_FILE, "ref: " + Repository.GITLET_DIR.relativize(currentBranchFile).toString().replace("\\", "/"));
-            System.err.println("Initialized an empty Gitlet repository in " + dbPath); // Per spec, no output on System.out
+            Logging.info.println("Initialized an empty Gitlet repository in " + dbPath); // Per spec, no output on System.out
         } catch (Exception e) {
-            System.err.println("An unexpected error occurred while initializing the Gitlet repository: " + e.getMessage());
+            Logging.err.println("An unexpected error occurred while initializing the Gitlet repository: " + e.getMessage());
             throw e; // new GitletException("Unable to create .gitlet/ directory.");
         }
     }
@@ -271,7 +271,7 @@ public class Repository {
             repo = new Repository();
         }
         if (!Files.exists(HEAD_FILE)) {
-            System.err.println("The HEAD file does not exist.");
+            Logging.err.println("The HEAD file does not exist.");
             // throw error("fatal: not a gitlet repository (or any of the parent directories): .gitlet"); // mimic the behavior of git
             System.err.println("fatal: not a gitlet repository (or any of the parent directories): .gitlet");
             return null;
@@ -320,19 +320,19 @@ public class Repository {
         try {
             mtime = Files.getLastModifiedTime(file).toMillis();
         } catch (IOException e) {
-            System.err.println("Can't get lasy modified time of " + file.toAbsolutePath());
+            Logging.warn.println("Can't get last modified time of " + file.toAbsolutePath());
         }
         long ctime = mtime;
         try {
             ctime = Files.readAttributes(file, BasicFileAttributes.class).creationTime().toMillis();
         } catch (IOException e) {
-            System.err.println("Can't get creation time of " + file.toAbsolutePath());
+            Logging.warn.println("Can't get creation time of " + file.toAbsolutePath());
         }
         long size = 0;
         try {
             size = Files.size(file);
         } catch (IOException e) {
-            System.err.println("Can't get size of " + file.toAbsolutePath());
+            Logging.warn.println("Can't get size of " + file.toAbsolutePath());
         }
         Commit headCommit = getHeadCommit();
         if (headCommit != null && headCommit.getFileBlobs().containsKey(filePath)) {
@@ -430,28 +430,27 @@ public class Repository {
             throw error("Unable to write to HEAD file: " + e.getMessage());
         }
         // Per spec, no output on System.out, but we print the commit briefing to stderr
-        System.err.println("[" + currentBranch() + " " + HEAD.substring(0, 7) + "] " + message);
-        // System.err.println(newCommit.getFileBlobs().size() + " files changed"); // summarize the changes
+        Logging.info.println("[" + currentBranch() + " " + HEAD.substring(0, 7) + "] " + message);
 
         // summarize the differences from the parent commit
         if (!addedFiles.isEmpty()) {
-            System.err.print(addedFiles.size() + " file(s) added:  ");
+            Logging.info.print(addedFiles.size() + " file(s) added:  ");
             for (String fileName : addedFiles.keySet()) {
-                System.err.print("  " + fileName);
+                Logging.info.print("  " + fileName);
             }
-            System.err.println();
+            Logging.info.println();
         }
         if (!removedFiles.isEmpty()) {
-            System.err.print(removedFiles.size() + " file(s) removed:");
+            Logging.info.print(removedFiles.size() + " file(s) removed:");
             for (String fileName : removedFiles.keySet()) {
-                System.err.print("  " + fileName);
+                Logging.info.print("  " + fileName);
             }
-            System.err.println();
+            Logging.info.println();
         }
         if (!changedFiles.isEmpty()) {
-            System.err.println(changedFiles.size() + " file(s) changed:");
+            Logging.info.println(changedFiles.size() + " file(s) changed:");
             for (Map.Entry<String, String> entry : changedFiles.entrySet()) {
-                System.err.println("  " + entry.getKey() + " (was: " + entry.getValue().substring(0, 7) + ")");
+                Logging.info.println("  " + entry.getKey() + " (was: " + entry.getValue().substring(0, 7) + ")");
             }
         }
 
@@ -470,25 +469,25 @@ public class Repository {
         Commit splitPoint = Commit.findLCA(headCommit, commitToMerge);
         if (splitPoint == null) {
             System.out.println("No split point found. Aborting merge.");
-            System.err.println("No split point found. Aborting merge.");
+            Logging.err.println("Merge attempted upon commits" + headCommit.getUid().substring(0, 7) + " and " + commitToMerge.getUid().substring(0, 7) + ", but the history seems unrelated.");
             return;
         }
         // check if commitToMerge is an ancestor of the current HEAD.
         if (commitToMerge.isLinearAncestorOf(headCommit)) {
-            System.err.println("Incoming commit is an ancestor of the current HEAD. Nothing to do.");
+            Logging.warn.println("Incoming commit is an ancestor of the current HEAD. Nothing to do.");
             return;
         }
         // check for staged but not commited additions and removals before merge
         if (!stagingArea.stagedFiles.isEmpty() || !stagingArea.removedFiles.isEmpty()) {
             System.out.println("You have uncommitted changes.");
-            System.err.println("Merge failed due to uncommitted changes.");
-            System.err.print("[+]:");
+            Logging.dbg.println("Merge failed due to uncommitted changes.");
+            Logging.dbg.print("[+]:");
             for (String fileName : stagingArea.stagedFiles.keySet()) {
-                System.err.print(" " + fileName);
+                Logging.dbg.print(" " + fileName);
             }
-            System.err.print("[-]:");
+            Logging.dbg.print("[-]:");
             for (String fileName : stagingArea.removedFiles.keySet()) {
-                System.err.print(" " + fileName);
+                Logging.dbg.print(" " + fileName);
             }
             return;
         }
@@ -502,7 +501,7 @@ public class Repository {
                     (splitPoint.getFileBlobs().containsKey(fileName) && !commitToMerge.getFileBlobs().containsKey(fileName));
                 if (willBeOverwrittenOrDeleted) {
                     System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-                    System.err.println("Untracked file " + fileName + " in the way; abort.");
+                    Logging.err.println("Untracked file " + fileName + " in the way; abort.");
                     return;
                 }
             }
@@ -535,7 +534,7 @@ public class Repository {
                 String conflictContent = "<<<<<<< HEAD\n" + headContent + "=======\n" + mergeContent + ">>>>>>>\n";
                 writeContents(CWD.resolve(filename), conflictContent);
                 stageFile(filename);
-                System.err.println("Encountered a merge conflict in file: " + filename);
+                Logging.warn.println("Encountered a merge conflict in file: " + filename);
             }
             // Rule 5: Not present at split point, present only in merge branch
             else if (splitBlob == null && mergeBlob != null && headBlob == null) {
@@ -555,7 +554,7 @@ public class Repository {
         if (hasConflict) {
             System.out.println("Encountered a merge conflict.");
         } else {
-            System.err.println("Merge completed successfully.");
+            Logging.info.println("Merge completed successfully.");
         }
     }
     public void mergeCommit(Commit commitToMerge) {
@@ -578,11 +577,11 @@ public class Repository {
      */
     public void restoreFile(String commitPrefix, String filename) {
         if (filename == null || filename.isBlank()) {
-            System.err.println("restore: nothing to restore.");
+            Logging.warn.println("restore: nothing to restore.");
             return;
         }
         if (commitPrefix == null || commitPrefix.isBlank()) {
-            System.err.println("restore: commitPrefix is null or empty, using HEAD as default.");
+            Logging.warn.println("restore: commitPrefix is null or empty, using HEAD as default.");
             commitPrefix = HEAD;
         }
         try {
@@ -593,18 +592,18 @@ public class Repository {
             }
             if (!intendedCommit.getFileBlobs().containsKey(filename)) {
                 System.out.println("File does not exist in that commit.");
-                System.err.println("File " + filename + " does not exist in commit " + commitPrefix);
+                Logging.err.println("File " + filename + " does not exist in commit " + commitPrefix);
                 return;
             }
             Blob blob = Blob.getByUid(intendedCommit.getFileBlobs().get(filename));
             if (blob == null) {
                 System.out.println("File does not exist in that commit.");
-                System.err.println("Blob for file " + filename + " missing in commit " + commitPrefix);
+                Logging.err.println("Blob for file " + filename + " missing in commit " + commitPrefix);
                 return;
             }
             Path file = CWD.resolve(filename);
             writeContents(file, blob.getContents());
-            System.err.println("File " + filename + " has been restored to the working directory.");
+            Logging.info.println("File " + filename + " has been restored to the working directory.");
         } catch (GitletException e) {
             if (e.getMessage().contains("Object does not exist")) {
                 System.err.println(e.getMessage());
@@ -635,7 +634,7 @@ public class Repository {
     public void resetHardCommit(String commitPrefix) {
         // reuses the restoreFile method to restore all files tracked by the given commit
         if (commitPrefix == null || commitPrefix.isBlank()) {
-            System.err.println("resetHardCommit: commitPrefix is null or empty, using HEAD as default.");
+            Logging.warn.println("resetHardCommit: commitPrefix is null or empty, using HEAD as default.");
             commitPrefix = HEAD;
         }
         try {
@@ -650,7 +649,7 @@ public class Repository {
                 if (Files.exists(file) && (!getHeadCommit().getFileBlobs().containsKey(fileName) && !stagingArea.stagedFiles.containsKey(fileName))) { // ! per spec, we should not check the staging area
                     // * if the file is tracked in the commit, it should not be untracked
                     System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-                    System.err.println("Untracked file " + fileName + " would be overwritten by reset.");
+                    Logging.err.println("Untracked file " + fileName + " would be overwritten by reset.");
                     return;
                 }
             }
@@ -664,9 +663,9 @@ public class Repository {
                     Path file = CWD.resolve(fileName);
                     if (Files.exists(file)) {
                         if (restrictedDelete(file)) {
-                            System.err.println("Removed " + fileName + " from the working directory.");
+                            Logging.info.println("Removed " + fileName + " from the working directory.");
                         } else {
-                            System.err.println("Failed to delete file: " + fileName + " ; removing from gitlet anyway.");
+                            Logging.warn.println("Failed to delete file: " + fileName + " ; removing from gitlet anyway.");
                         }
                     }
                 }
@@ -708,7 +707,7 @@ public class Repository {
      */
     public void checkoutBranch(String branch){
         if (branch == null || branch.isBlank()) {
-            System.err.println("checkoutBranch: branch is null or empty, using HEAD as default.");
+            Logging.warn.println("checkoutBranch: branch is null or empty, using HEAD as default.");
             branch = currentBranch();
         }
         if (!isDetachedHead() && isCurrentBranch(branch)) {
@@ -732,7 +731,7 @@ public class Repository {
         //     if (false && Files.exists(file) && !getHeadCommit().getFileBlobs().containsKey(fileName)) { // ! per spec, we should not check the staging area
         //         // * if the file is tracked in the commit, it should not be untracked
         //         System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-        //         System.err.println("Untracked file " + fileName + " would be overwritten by checkout.");
+        //         Logging.err.println("Untracked file " + fileName + " would be overwritten by checkout.");
         //         return;
         //     }
         // }
@@ -746,9 +745,9 @@ public class Repository {
                 Path file = CWD.resolve(fileName);
                 if (Files.exists(file)) {
                     if (restrictedDelete(file)) {
-                        System.err.println("Removed " + fileName + " from the working directory.");
+                        Logging.info.println("Removed " + fileName + " from the working directory.");
                     } else {
-                        System.err.println("Failed to delete file: " + fileName + " ; removing from gitlet anyway.");
+                        Logging.warn.println("Failed to delete file: " + fileName + " ; removing from gitlet anyway.");
                     }
                 }
             }
@@ -786,13 +785,13 @@ public class Repository {
         }
         Path file = CWD.resolve(filename);
         if (!Files.exists(file)) {
-            System.err.println("File does not exist: " + filename + " ; removing from gitlet anyway.");
+            Logging.warn.println("File does not exist: " + filename + " ; removing from gitlet anyway.");
         }
         // * if the file is staged, unstage it
         if (stagingArea.stagedFiles.containsKey(filename)) {
             stagingArea.stagedFiles.remove(filename);
             writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
-            System.err.println("Unstaged " + filename + ".");
+            Logging.info.println("Unstaged " + filename + ".");
             return;
         }
         // * if the file is tracked in the current commit, stage it for removal
@@ -802,21 +801,21 @@ public class Repository {
             try {
                 fileLength = Files.size(file);
             } catch (IOException e) {
-                System.err.println("Failed to get file length: " + e.getMessage());
+                Logging.err.println("Failed to get file length: " + e.getMessage());
             }
             stagingArea.removedFiles.put(filename, new StagingArea.fileInfo(filename, currentCommit.getFileBlobs().get(filename),
                     Instant.now().toEpochMilli(), Instant.now().toEpochMilli(), fileLength));
             writeObject(INDX_FILE, stagingArea); // persist the staging area to the index file
             if (restrictedDelete(file)) { // remove the file from the working directory
-                // System.err.println("Removed " + filename + ".");
+                // Logging.info.println("Removed " + filename + ".");
             } else {
-                System.err.println("Failed to remove " + filename + ". It may not be writable or does not exist.");
+                Logging.err.println("Failed to remove " + filename + ". It may not be writable or does not exist.");
             }
             return;
         }
         // * if the file is not staged for addition and not tracked by the head commit, print an error message
         System.out.println("No reason to remove the file.");
-        System.err.println("An attempt made to remove a file that is neither tracked or staged (" + filename + ").");
+        Logging.warn.println("An attempt made to remove a file that is neither tracked or staged (" + filename + ").");
     }
 
     /** Logs the commit history of the repository.
@@ -882,7 +881,7 @@ public class Repository {
         // * this is the branch that HEAD points to
         if (Files.exists(HEAD_FILE)) {
             String headContent = readContentsAsString(HEAD_FILE);
-            // System.err.println("resolving current branch: HEAD at " + headContent);
+            // Logging.dbg.println("resolving current branch: HEAD at " + headContent);
             if (headContent.startsWith("ref: ")) {
                 String refPath = headContent.substring(5).trim();
                 Path refFile = GITLET_DIR.resolve(refPath);
@@ -901,7 +900,7 @@ public class Repository {
         // * this means that HEAD is not pointing to a branch, but to a commit
         if (Files.exists(HEAD_FILE)) {
             String headContent = readContentsAsString(HEAD_FILE);
-            // System.err.println("checking if HEAD is detached: HEAD at " + headContent + "; current branch: " + currentBranch());
+            // Logging.dbg.println("checking if HEAD is detached: HEAD at " + headContent + "; current branch: " + currentBranch());
             return !headContent.startsWith("ref: "); // if HEAD does not start with "ref: ", it is detached
         }
         return false; // if the HEAD file does not exist, it is not detached
@@ -979,7 +978,7 @@ public class Repository {
                 System.out.println(file.getFileName());
             }
         } catch (IOException e) {
-            System.err.println("Failed to list untracked files: " + e.getMessage());
+            Logging.err.println("Failed to list untracked files: " + e.getMessage());
         }
     }
     /**
@@ -1070,14 +1069,14 @@ public class Repository {
             }
             if (!untrackedFiles.isEmpty()) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-                System.err.println("Untracked files that would be overwritten by the switch:");
+                Logging.err.println("Untracked files that would be overwritten by the switch:");
                 for (String fileName : untrackedFiles) {
-                    System.err.println(fileName);
+                    Logging.err.println(fileName);
                 }
                 return;
             }
         } catch (IOException e) {
-            System.err.println("Failed to check untracked files: " + e.getMessage()); return;
+            Logging.err.println("Failed to check untracked files: " + e.getMessage()); return;
         }
         // point HEAD to the branch commit
         updateHeadRef(branchFile);
@@ -1087,14 +1086,14 @@ public class Repository {
             for (Path file : stream) {
                 if (!file.getFileName().toString().equals(".gitlet")) {
                     if (restrictedDelete(file)) {
-                        System.err.println("Deleted file " + file.getFileName() + " from working directory.");
+                        Logging.info.println("Deleted file " + file.getFileName() + " from working directory.");
                     } else {
-                        System.err.println("Failed to delete file " + file.getFileName());
+                        Logging.err.println("Failed to delete file " + file.getFileName());
                     }
                 }
             }
         } catch (IOException e) {
-            System.err.println("Failed to clean working directory: " + e.getMessage());
+            Logging.err.println("Failed to clean working directory: " + e.getMessage());
         }
         // clear the staging area
         stagingArea.stagedFiles.clear();
@@ -1108,12 +1107,12 @@ public class Repository {
             if (blob != null) {
                 Path file = CWD.resolve(fileName);
                 writeContents(file, blob.getContents());
-                System.err.println("Restored file " + file.getFileName() + " to working directory.");
+                Logging.dbg.println("Restored file " + file.getFileName() + " to working directory.");
             } else {
-                System.err.println("Blob for file " + fileName + " not found in commit " + branchCommitUid);
+                Logging.err.println("Blob for file " + fileName + " not found in commit " + branchCommitUid);
             }
         }
-        System.err.println("Switched to branch '" + branch + "'.");
+        Logging.info.println("Switched to branch '" + branch + "'.");
     }
 
     public boolean isCurrentBranch(String branch) {
@@ -1121,7 +1120,7 @@ public class Repository {
         if (branch == null || branch.isBlank()) {
             return false; // invalid branch name
         }
-        // System.err.println("Current branch " + currentBranch() + " compared against " + branch);
+        // Logging.dbg.println("Current branch " + currentBranch() + " compared against " + branch);
         return currentBranch().equals(branch);
     }
 
@@ -1141,7 +1140,7 @@ public class Repository {
             }
             return branchNames.toArray(new String[0]);
         } catch (IOException e) {
-            System.err.println("Failed to list branches: " + e.getMessage());
+            Logging.err.println("Failed to list branches: " + e.getMessage());
             return new String[0];
         }
     }
@@ -1178,9 +1177,9 @@ public class Repository {
         }
         try {
             Files.delete(branchFile);
-            System.err.println("Removed branch '" + branch + "'.");
+            Logging.info.println("Removed branch '" + branch + "'.");
         } catch (IOException e) {
-            System.err.println("Failed to remove branch: " + e.getMessage());
+            Logging.err.println("Failed to remove branch: " + e.getMessage());
         }
     }
 
@@ -1259,7 +1258,7 @@ public class Repository {
      */
     public void mergeBranch(String branch) {
         // // print the stagingArea onto STDERR to get a peek
-        // System.err.println("\u001B[36mStaged Files: " + stagingArea.stagedFiles.keySet() + "\u001B[0m");
+        // Logging.dbg.println("Staged Files: " + stagingArea.stagedFiles.keySet()");
         // * merge the given branch into the current branch
         if (isDetachedHead()){
             throw error("Cannot merge a branch when HEAD is detached.");
@@ -1269,7 +1268,7 @@ public class Repository {
         }
         if (branch.equals(currentBranch())) {
             System.out.println("Cannot merge a branch with itself.");
-            System.err.println("Merging a branch with itself; nothing to do.");
+            Logging.warn.println("Merging a branch with itself; nothing to do.");
             return;
         }
         Path branchFile = BRC_DIR.resolve(branch);
@@ -1286,21 +1285,21 @@ public class Repository {
         // check for staged but not commited additions and removals before merge
         if (!stagingArea.stagedFiles.isEmpty() || !stagingArea.removedFiles.isEmpty()) {
             System.out.println("You have uncommitted changes.");
-            System.err.println("Merge failed due to uncommitted changes.");
-            System.err.print("[+]:");
+            Logging.dbg.println("Merge failed due to uncommitted changes.");
+            Logging.dbg.print("[+]:");
             for (String fileName : stagingArea.stagedFiles.keySet()) {
-                System.err.print(" " + fileName);
+                Logging.dbg.print(" " + fileName);
             }
-            System.err.print("[-]:");
+            Logging.dbg.print("[-]:");
             for (String fileName : stagingArea.removedFiles.keySet()) {
-                System.err.print(" " + fileName);
+                Logging.dbg.print(" " + fileName);
             }
             return;
         }
         // check if commitToMerge is an ancestor of the current HEAD.
         if (commitToMerge.isLinearAncestorOf(getHeadCommit())) {
             System.out.println("Given branch is an ancestor of the current branch.");
-            System.err.println("Given branch is an ancestor of the current branch.");
+            // Logging.info.println("Given branch is an ancestor of the current branch.");
             return;
         }
         // check if fast-forward is possible
@@ -1316,7 +1315,7 @@ public class Repository {
                     Path file = CWD.resolve(fileName);
                     if (Files.exists(file)) {
                         if (restrictedDelete(file)) {
-                            System.err.println("Deleted file " + fileName + " from working directory.");
+                            Logging.info.println("Deleted file " + fileName + " from working directory.");
                         }
                     }
                 }
@@ -1329,9 +1328,9 @@ public class Repository {
                 if (blob != null) {
                     Path file = CWD.resolve(fileName);
                     writeContents(file, blob.getContents());
-                    System.err.println("Restored file " + file.getFileName() + " to working directory.");
+                    Logging.info.println("Restored file " + file.getFileName() + " to working directory.");
                 } else {
-                    System.err.println("Blob for file " + fileName + " not found in commit " + branchCommitUid);
+                    Logging.err.println("Blob for file " + fileName + " not found in commit " + branchCommitUid);
                 }
             }
             // 更新 HEAD 指针和分支指针
@@ -1344,10 +1343,10 @@ public class Repository {
             stagingArea.removedFiles.clear();
             writeObject(INDX_FILE, stagingArea);
             System.out.println("Current branch fast-forwarded.");
-            System.err.println("Current branch fast-forwarded. " + oldCommitUid.substring(0, 7) + " -> " + HEAD.substring(0, 7));
+            Logging.dbg.println("Fast-forward " + currentBranch() + "  " + oldCommitUid.substring(0, 7) + " -> " + HEAD.substring(0, 7) + " (" + branch + ")");
             return;
         }
-        System.err.printf("Merging %s into %s.\n", branch, currentBranch());
+        Logging.info.printf("Merging %s into %s.\n", branch, currentBranch());
         mergeCommit(commitToMerge, String.format("Merged %s into %s.", branch, currentBranch()));
         // update branchFile
         writeContents(branchFile, HEAD); // update the branch file to point to the new HEAD commit

@@ -75,13 +75,13 @@ public class Main {
                 if (repo != null) {
                     // assert that the default branch points to the initial commit, and so does HEAD
                     if (!repo.getBranchCommit(repo.defaultBranch).getUid().equals(Commit.initialCommit().getUid()) || !repo.HEAD.equals(Commit.initialCommit().getUid())) {
-                        System.err.println("repo.getBranchCommit(repo.defaultBranch).getUid(): " + repo.getBranchCommit(repo.defaultBranch).getUid());
-                        System.err.println("repo.HEAD: " + repo.HEAD);
-                        System.err.println("Commit.initialCommit().getUid(): " + Commit.initialCommit().getUid());
+                        Logging.dbg.println("repo.getBranchCommit(repo.defaultBranch).getUid(): " + repo.getBranchCommit(repo.defaultBranch).getUid());
+                        Logging.dbg.println("repo.HEAD: " + repo.HEAD);
+                        Logging.dbg.println("Commit.initialCommit().getUid(): " + Commit.initialCommit().getUid());
                         throw new IllegalStateException("Repo initialization corrupted.");
                     }
-                    System.err.println("Initialized repolet with default branch: " + repo.defaultBranch);
-                    System.err.println("\t HEAD -> " + repo.HEAD); // Repository.resolveHead(join(Repository.BRC_DIR, repo.defaultBranch)));
+                    Logging.info.println("Initialized repolet with default branch: " + repo.defaultBranch);
+                    Logging.info.println("\t HEAD -> " + repo.HEAD); // Repository.resolveHead(join(Repository.BRC_DIR, repo.defaultBranch)));
                 } else {
                     System.out.println("Failed to initialize Gitlet repository.");
                 }
@@ -96,13 +96,13 @@ public class Main {
                 // check if the file exists
                 for (String filename : args) {
                     if (filename.isEmpty()) {
-                        System.err.println("Empty file name. Ignored.");
+                        Logging.info.println("Empty file name. Ignored.");
                         continue;
                     }
                     File file = new File(filename);
                     if (!file.exists()) {
                         System.out.println("File does not exist.");
-                        System.err.println("File does not exist: " + filename);
+                        Logging.dbg.println("Non existent file: " + filename);
                         return repo;
                     }
                 }
@@ -135,7 +135,7 @@ public class Main {
                     }
                 } else {
                     System.out.println("Incorrect operands.");
-                    System.err.println("Invalid restore command. Use 'restore -- <file>' or 'restore <commit> -- <file>'.");
+                    Logging.err.println("Invalid restore command. Use 'restore -- <file>' or 'restore <commit> -- <file>'.");
                     return repo;
                 }
             }
@@ -154,12 +154,12 @@ public class Main {
                 // check if the file exists
                 for (String filename : args) {
                     if (filename.isEmpty()) {
-                        System.err.println("Empty file name. Ignored.");
+                        Logging.warn.println("Empty file name. Ignored.");
                         continue;
                     }
                     File file = new File(filename);
                     if (!file.exists()) {
-                        System.err.println("File does not exist in working tree: " + filename);
+                        Logging.err.println("File does not exist in working tree: " + filename);
                     }
                 }
                 for (String filename : args) {
@@ -189,11 +189,11 @@ public class Main {
                     return repo;
                 }
                 String message = String.join(" ", args);
-                System.err.println("message = " + message);
+                Logging.dbg.println("message = " + message);
                 // filter the commits by message
                 if (message .equals("initial commit")){
                     Commit commit = Commit.initialCommit();
-                    System.err.println(commit.message + " (" + commit.getUid() + ")");
+                    Logging.dbg.println(commit.message + " (" + commit.getUid() + ")");
                     System.out.println(commit.getUid());
                 } else {
                     Commit[] foundCommits = Arrays.stream(commits)
@@ -203,7 +203,7 @@ public class Main {
                         System.out.println("Found no commit with that message.");
                     } else {
                         for (Commit commit : foundCommits) {
-                            System.err.println(commit.message + " (" + commit.getUid() + ")");
+                            Logging.dbg.println(commit.message + " (" + commit.getUid() + ")");
                             System.out.println(commit.getUid());
                         }
                     }
@@ -256,8 +256,8 @@ public class Main {
                 }
                 String newBranchName = args[0];
                 repo.createBranch(newBranchName);
-                System.err.println("Created a new branch: " + newBranchName);
-                System.err.println("\t      -> " + repo.getBranchCommit(newBranchName).getUid());
+                Logging.dbg.println("Created a new branch: " + newBranchName);
+                Logging.dbg.println("\t      -> " + repo.getBranchCommit(newBranchName).getUid());
             }
             case "switch" -> {
                 if (args.length == 0 || args[0].isBlank()) {
@@ -284,7 +284,7 @@ public class Main {
                 repo.resetHardCommit(commitPrefix);
             }
             case "checkout" -> {
-                System.err.println("This is only a mock pu to pass the tests.");
+                Logging.warn.println("This is only a mock up to pass the tests.");
                 if (args.length == 1){
                     repo.checkoutBranch(args[0]);
                 } else {
@@ -344,7 +344,7 @@ public class Main {
                 try {
                     repo = cmd(repo, firstArg, inputArgs);
                 } catch (IOException e) {
-                    System.err.println("An error occurred while executing the command: " + e.getMessage());
+                    Logging.err.println("An error occurred while executing the command: " + e.getMessage());
                 } catch (UnsupportedOperationException e) {
                     System.err.println(e.getMessage());
                 }

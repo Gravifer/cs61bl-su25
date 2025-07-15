@@ -397,22 +397,22 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
         System.out.println(message);
         System.out.println();
 
-        // System.err.println("===");
-        // System.err.println("Commit UID: " + getUid());
-        // System.err.println("Message: " + message);
-        // System.err.println("Timestamp: " + timestamp);
-        // System.err.println("Author Timestamp: " + authorTimestamp);
-        // System.err.println("Parents: " + String.join(", ", parents));
+        // Logging.dbg.println("===");
+        // Logging.dbg.println("Commit UID: " + getUid());
+        // Logging.dbg.println("Message: " + message);
+        // Logging.dbg.println("Timestamp: " + timestamp);
+        // Logging.dbg.println("Author Timestamp: " + authorTimestamp);
+        // Logging.dbg.println("Parents: " + String.join(", ", parents));
         // if (fileBlobs.isEmpty()) {
-        //     System.err.println("No files in this commit.");
+        //     Logging.dbg.println("No files in this commit.");
         // } else {
-        //     System.err.println("Files in this commit:");
+        //     Logging.dbg.println("Files in this commit:");
         //     for (Map.Entry<String, String> entry : fileBlobs.entrySet()) {
-        //         System.err.printf("  %s -> %s%n", entry.getKey(), entry.getValue());
+        //         Logging.dbg.printf("  %s -> %s%n", entry.getKey(), entry.getValue());
         //     }
         // }
-        // System.err.println();
-        System.err.println(message + " (" + getUid() + ")");
+        // Logging.dbg.println();
+        Logging.dbg.println(message + " (" + getUid() + ")");
     }
     public void logCommit(){
         // Use a default formatter if none is provided

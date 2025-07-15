@@ -154,6 +154,7 @@ public class GitletTests {
                 SimpleDateFormat.class,
                 // Utils
                 FilenameFilter.class,
+                gitlet.Utils.Logging.Logger.class,
                 // For testing stdout; not actually for use by students.
                 ByteArrayOutputStream.class,
                 PrintStream.class
@@ -280,7 +281,7 @@ public class GitletTests {
      */
     public static void writeFile(Path src, String dst) {
         try {
-            OG_OUT.println("#[AG] Copying source file " + src + " to testing file " + dst);
+            OG_OUT.println("\u001B[32m#[AG] Copying source file " + src + " to testing file " + dst + "\u001B[0m");
             Files.copy(src, Path.of(dst), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -294,7 +295,7 @@ public class GitletTests {
      */
     public static void deleteFile(String path) {
         try {
-            OG_OUT.println("#[AG] Delete file " + path);
+            OG_OUT.println("\u001B[32m#[AG] Delete file " + path + "\u001B[0m");
             Files.delete(Path.of(path));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -307,7 +308,7 @@ public class GitletTests {
      * @param path
      */
     public static void assertFileExists(String path) {
-        OG_OUT.println("#[AG] Check that file or directory " + path + " exists");
+        OG_OUT.println("\u001B[32m#[AG] Check that file or directory " + path + " exists\u001B[0m");
         if (!Files.exists(Path.of(path))) {
             fail("Expected file " + path + " to exist; does not.");
         }
@@ -319,7 +320,7 @@ public class GitletTests {
      * @param path
      */
     public static void assertFileDoesNotExist(String path) {
-        OG_OUT.println("#[AG] Check that file " + path + " does NOT exist");
+        OG_OUT.println("\u001B[32m#[AG] Check that file " + path + " does \u001B[31mNOT\u001B[32m exist\u001B[0m");
         if (Files.exists(Path.of(path))) {
             fail("Expected file " + path + " to not exist; does.");
         }
@@ -333,7 +334,7 @@ public class GitletTests {
      * @param pathActual -- filename in current testing directory to check
      */
     public static void assertFileEquals(Path src, String pathActual) {
-        OG_OUT.println("#[AG] Check that source file " + src + " is identical to testing file " + pathActual);
+        OG_OUT.println("\u001B[32m#[AG] Check that source file " + src + " is identical to testing file " + pathActual + "\u001B[0m");
         if (!Files.exists(Path.of(pathActual))) {
             fail("Expected file " + pathActual + " to exist; does not.");
         }
