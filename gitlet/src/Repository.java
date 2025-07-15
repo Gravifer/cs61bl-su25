@@ -1223,6 +1223,8 @@ public class Repository {
             return;
         }
         mergeCommit(commitToMerge, String.format("Merged %s into %s.", branch, currentBranch()));
+        // update branchFile
+        writeContents(branchFile, HEAD); // update the branch file to point to the new HEAD commit
     }
 
     public static class GitletUID {
