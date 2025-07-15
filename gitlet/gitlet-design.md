@@ -190,3 +190,10 @@ The **Ref** class represents a reference to a commit (supposed to be used for br
 - All file operations are performed relative to the working directory.
 - Error messages and outputs follow the spec verbatim.
 - Logging and debug output are sent to stderr, not stdout.
+
+- **Some other implementations to check out**
+  - https://github.com/Abdelrhmansersawy/Gitlet
+  - https://github.com/annetta-zheng/Gitlet
+  - https://github.com/hrishikeshh/Gitlet
+  - https://github.com/jacobakh/Gitlet
+  - https://github.com/pichardo13/gitlet
