@@ -10,3 +10,6 @@
 [submodule "library-su25"]
 	path = library-su25
 	url = https://github.com/cs61bl/library-su25
+[submodule "gitlet/git.old"]
+	path = gitlet/git.old
+	url = https://github.com/git/git

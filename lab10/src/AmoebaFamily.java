@@ -47,6 +47,7 @@ public class AmoebaFamily implements Iterable<AmoebaFamily.Amoeba> {
     private TraversalType traversalType = TraversalType.DFS;
     /* Returns an Iterator for this src.AmoebaFamily. */
     public Iterator<Amoeba> iterator() {
+        // https://stackoverflow.com/questions/4065518/java-how-to-get-the-caller-function-name
         String callerName = StackWalker.getInstance().
                             walk(stream -> stream.skip(1).findFirst().get()).
                             getMethodName();
