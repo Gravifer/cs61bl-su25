@@ -1306,10 +1306,45 @@ public class Repository {
         // check if fast-forward is possible
         if (getHeadCommit().isLinearAncestorOf(commitToMerge)) {
             // fast-forward the current branch to the commitToMerge
-            writeContents(branchFile, HEAD);
-            switchBranch(branch);
+            String oldCommitUid = HEAD; // save the old HEAD commit UID
+            Commit currentCommit = getHeadCommit();
+            Set<String> currentFiles = new HashSet<>(currentCommit.getFileBlobs().keySet());
+            Set<String> targetFiles = new HashSet<>(commitToMerge.getFileBlobs().keySet());
+            // 删除当前分支有但目标分支没有的文件
+            for (String fileName : currentFiles) {
+                if (!targetFiles.contains(fileName)) {
+                    Path file = CWD.resolve(fileName);
+                    if (Files.exists(file)) {
+                        if (restrictedDelete(file)) {
+                            System.err.println("Deleted file " + fileName + " from working directory.");
+                        }
+                    }
+                }
+            }
+            // 恢复目标分支的文件
+            for (Map.Entry<String, String> entry : commitToMerge.getFileBlobs().entrySet()) {
+                String fileName = entry.getKey();
+                String blobUid = entry.getValue();
+                Blob blob = Blob.getByUid(blobUid);
+                if (blob != null) {
+                    Path file = CWD.resolve(fileName);
+                    writeContents(file, blob.getContents());
+                    System.err.println("Restored file " + file.getFileName() + " to working directory.");
+                } else {
+                    System.err.println("Blob for file " + fileName + " not found in commit " + branchCommitUid);
+                }
+            }
+            // 更新 HEAD 指针和分支指针
+            writeContents(BRC_DIR.resolve(currentBranch()), commitToMerge.getUid());
+            updateHeadRef(BRC_DIR.resolve(currentBranch()));
+            this.HEAD = commitToMerge.getUid();
+            this.HeadCommit = commitToMerge;
+            // 清空暂存区
+            stagingArea.stagedFiles.clear();
+            stagingArea.removedFiles.clear();
+            writeObject(INDX_FILE, stagingArea);
             System.out.println("Current branch fast-forwarded.");
-            System.err.println("Current branch fast-forwarded.");
+            System.err.println("Current branch fast-forwarded. " + oldCommitUid.substring(0, 7) + " -> " + HEAD.substring(0, 7));
             return;
         }
         System.err.printf("Merging %s into %s.\n", branch, currentBranch());

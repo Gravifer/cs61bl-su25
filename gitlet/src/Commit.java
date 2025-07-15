@@ -473,6 +473,10 @@ public class Commit implements Serializable, Comparable<Commit>, Dumpable {
     }
 
     public boolean isLinearAncestorOf(Commit other) {
+        // if other is HEAD, return false
+        if (other == null || other.isInitialCommit() || this.getUid().equals(other.getUid())) {
+            return false; // Cannot be an ancestor of the initial commit or null
+        }
         // Traverse the commit graph from other to see if this commit is an ancestor
         Deque<Commit> stack = new ArrayDeque<>();
         stack.push(other);

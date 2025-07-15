@@ -62,6 +62,7 @@ public class GitletTests {
     static final String ARBLINE = "[^\\n]*(?=\\n|\\Z)";
     static final String ARBLINES = "(?:(?:.|\\n)*(?:\\n|\\Z)|\\A|\\Z)";
 
+    private static final String COMMAND_PROMPT = "$ ";
     private static final String COMMAND_BASE = "java gitlet.Main ";
     private static final int DELAY_MS = 150;
     private static final String TESTING_DIR = "testing";
@@ -279,7 +280,7 @@ public class GitletTests {
      */
     public static void writeFile(Path src, String dst) {
         try {
-            OG_OUT.println("Copy source file " + src + " to testing file " + dst);
+            OG_OUT.println("#[AG] Copying source file " + src + " to testing file " + dst);
             Files.copy(src, Path.of(dst), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -293,7 +294,7 @@ public class GitletTests {
      */
     public static void deleteFile(String path) {
         try {
-            OG_OUT.println("Delete file " + path);
+            OG_OUT.println("#[AG] Delete file " + path);
             Files.delete(Path.of(path));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -306,7 +307,7 @@ public class GitletTests {
      * @param path
      */
     public static void assertFileExists(String path) {
-        OG_OUT.println("Check that file or directory " + path + " exists");
+        OG_OUT.println("#[AG] Check that file or directory " + path + " exists");
         if (!Files.exists(Path.of(path))) {
             fail("Expected file " + path + " to exist; does not.");
         }
@@ -318,7 +319,7 @@ public class GitletTests {
      * @param path
      */
     public static void assertFileDoesNotExist(String path) {
-        OG_OUT.println("Check that file " + path + " does NOT exist");
+        OG_OUT.println("#[AG] Check that file " + path + " does NOT exist");
         if (Files.exists(Path.of(path))) {
             fail("Expected file " + path + " to not exist; does.");
         }
@@ -332,7 +333,7 @@ public class GitletTests {
      * @param pathActual -- filename in current testing directory to check
      */
     public static void assertFileEquals(Path src, String pathActual) {
-        OG_OUT.println("Check that source file " + src + " is identical to testing file " + pathActual);
+        OG_OUT.println("#[AG] Check that source file " + src + " is identical to testing file " + pathActual);
         if (!Files.exists(Path.of(pathActual))) {
             fail("Expected file " + pathActual + " to exist; does not.");
         }
@@ -402,7 +403,7 @@ public class GitletTests {
             for (int i = 0; i < args.length; i ++) {
                 args[i] = new String(args[i]);
             }
-            OG_OUT.println(COMMAND_BASE + createCommand(args));
+            OG_OUT.println(COMMAND_PROMPT + COMMAND_BASE + createCommand(args));
             gitlet.Main.main(args);
         } catch (SecurityException ignored) {
         } catch (Exception e) {
