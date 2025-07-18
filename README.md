@@ -18,7 +18,8 @@
 - Cherry-picking past projects:
   What attracted me to this course was [the gitlet project](https://sp21.datastructur.es/materials/proj/proj2/proj2),
   which is being replaced starting from [sp24](https://sp24.datastructur.es/);
-  [su24](https://cs61bl.org/su24/projects/gitlet/design) is the latest version to still have it.
+  [su24](https://cs61bl.org/su24/projects/gitlet/design) is the latest version to still have it. 
+  I amended the starter code and put it in this [template repo](https://github.com/Gravifer/cs61bl-su24.gitlet).  
   I also cherry-picked various versions of Project 0.
   - Note that the [gitlet](./gitlet/) tests [would issue warnings with Java 17+](https://openjdk.org/jeps/411) 
     and [wouldn't compile with Java 24+](https://openjdk.org/jeps/486),
