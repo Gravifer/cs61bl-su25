@@ -1,7 +1,6 @@
 package ngrams;
 
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * An object for mapping a year number (e.g. 1996) to numerical data. Provides
@@ -30,15 +29,28 @@ public class TimeSeries extends TreeMap<Integer, Double> {
      */
     public TimeSeries(TimeSeries ts, int startYear, int endYear) {
         super();
-        // TODO: Fill in this constructor.
+        // DONE: Fill in this constructor.
+        if (startYear < MIN_YEAR || endYear > MAX_YEAR || startYear > endYear) { // unclear how to treat; fail fast for now
+            throw new IllegalArgumentException("Invalid year range: " + startYear + " to " + endYear);
+        }
+        for (Integer year : ts.keySet()) {
+            if (year >= startYear && year <= endYear) {
+                this.put(year, ts.get(year));
+            }
+        }
     }
 
     /**
      *  Returns all years for this time series in ascending order.
      */
     public List<Integer> years() {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        if (this.isEmpty()) {
+            return List.of();
+        }
+        // TreeMap's keySet() returns keys in ascending order,
+        // so we can safely convert it to a List.
+        return List.copyOf(this.keySet()); // toStream().sorted();
     }
 
     /**
@@ -46,8 +58,13 @@ public class TimeSeries extends TreeMap<Integer, Double> {
      *  order of years().
      */
     public List<Double> data() {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        if (this.isEmpty()) {
+            return List.of();
+        }
+        // TreeMap's values() returns values in the order of keys,
+        // so we can safely convert it to a List.
+        return List.copyOf(this.values());
     }
 
     /**
@@ -60,8 +77,28 @@ public class TimeSeries extends TreeMap<Integer, Double> {
      * should store the value from the TimeSeries that contains that year.
      */
     public TimeSeries plus(TimeSeries ts) {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        TimeSeries result = new TimeSeries();
+        if (this.isEmpty() && ts.isEmpty()) {
+            return result; // return empty TimeSeries
+        } else if (this.isEmpty()) {
+            return ts; // return the other TimeSeries
+        } else if (ts.isEmpty()) {
+            return this; // return this TimeSeries
+        }
+
+        // merge the keys of both TimeSeries
+        Set <Integer> keys = new TreeSet<>();
+        keys.addAll(this.keySet());
+        keys.addAll(ts.keySet());
+
+        for (Integer year : keys) {
+            double thisValue = this.getOrDefault(year, 0.0);
+            double tsValue = ts.getOrDefault(year, 0.0);
+            result.put(year, thisValue + tsValue);
+        }
+
+        return result;
     }
 
     /**
@@ -74,10 +111,25 @@ public class TimeSeries extends TreeMap<Integer, Double> {
      * If TS has a year that is not in this TimeSeries, ignore it.
      */
     public TimeSeries dividedBy(TimeSeries ts) {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        if (ts.isEmpty()) {
+            throw new IllegalArgumentException("Cannot divide by an empty TimeSeries.");
+        }
+        TimeSeries result = new TimeSeries();
+        for (Integer year : this.keySet()) {
+            if (!ts.containsKey(year)) {
+                throw new IllegalArgumentException("TS is missing year: " + year);
+            }
+            double thisValue = this.get(year);
+            double tsValue = ts.get(year);
+            if (tsValue == 0) {
+                throw new IllegalArgumentException("Division by zero for year: " + year);
+            }
+            result.put(year, thisValue / tsValue);
+        }
+        return result;
     }
 
-    // TODO: Add any private helper methods.
-    // TODO: Remove all TODO comments before submitting.
+    // DONE: Add any private helper methods.
+    // DONE: Remove all T0D0 comments before submitting.
 }
