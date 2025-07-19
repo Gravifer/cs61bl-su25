@@ -1,6 +1,7 @@
 package ngrams;
 
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * An object for mapping a year number (e.g. 1996) to numerical data. Provides
@@ -120,16 +121,31 @@ public class TimeSeries extends TreeMap<Integer, Double> {
             if (!ts.containsKey(year)) {
                 throw new IllegalArgumentException("TS is missing year: " + year);
             }
-            double thisValue = this.get(year);
-            double tsValue = ts.get(year);
-            if (tsValue == 0) {
+            if (ts.get(year) == 0) {
                 throw new IllegalArgumentException("Division by zero for year: " + year);
             }
+        }
+        for (Integer year : this.keySet()) {
+            double thisValue = this.get(year);
+            double tsValue = ts.get(year);
             result.put(year, thisValue / tsValue);
         }
         return result;
     }
 
     // DONE: Add any private helper methods.
+
+    /**
+     * Helper method to copy years in range from another TimeSeries.
+     */
+    private TimeSeries filterByYear(Function<Integer, Boolean> filter) {
+        TimeSeries result = new TimeSeries();
+        for (Integer year : this.keySet()) {
+            if (year >= MIN_YEAR && year <= MAX_YEAR && filter.apply(year)) {
+                result.put(year, this.get(year));
+            }
+        }
+        return result;
+    }
     // DONE: Remove all T0D0 comments before submitting.
 }
