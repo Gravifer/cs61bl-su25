@@ -1,9 +1,12 @@
 import ngrams.NGramMap;
 import ngrams.TimeSeries;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -53,9 +56,12 @@ public class NGramMapTest {
         }
     }
 
-    @Disabled("less_short.csv does not exist in the old version of distributed data")
+    // @Disabled("less_short.csv does not exist in the old version of distributed data")
     @Test
     public void testOnShortFile() {
+        // assume SHORTER_WORDS_FILE exists and is readable
+        Assumptions.assumeTrue(Files.exists(Path.of(SHORTER_WORDS_FILE)),
+                "SHORTER_WORDS_FILE does not exist, perhaps old distributed data is being used; skipping testOnShortFile");
         // creates an NGramMap from a large dataset
         NGramMap ngm = new NGramMap(SHORTER_WORDS_FILE, // ! does not exist in the old version of distributed data
                 TOTAL_COUNTS_FILE);
