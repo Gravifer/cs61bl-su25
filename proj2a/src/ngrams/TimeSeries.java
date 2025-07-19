@@ -146,9 +146,10 @@ public class TimeSeries extends TreeMap<Integer, Double> {
     // DONE: Add any private helper methods.
 
     /**
-     * Helper method to copy years in range from another TimeSeries.
+     * Returns a TimeSeries containing only the years that satisfy the given filter.
+     * The filter is a function that takes an Integer (year) and returns a Boolean.
      */
-    private TimeSeries filterByYear(Function<Integer, Boolean> filter) {
+    TimeSeries filterByYear(Function<Integer, Boolean> filter) {
         TimeSeries result = new TimeSeries();
         for (Integer year : this.keySet()) {
             if (year >= MIN_YEAR && year <= MAX_YEAR && filter.apply(year)) {
@@ -156,6 +157,25 @@ public class TimeSeries extends TreeMap<Integer, Double> {
             }
         }
         return result;
+    }
+
+    /**
+     * Helper method to copy years in range from another TimeSeries, inclusive.
+     */
+    TimeSeries filterByYearRange(int startYear, int endYear) {
+        // DONE: Fill in this method.
+        if (startYear < MIN_YEAR || endYear > MAX_YEAR || startYear > endYear) {
+            throw new IllegalArgumentException("Invalid year range: " + startYear + " to " + endYear);
+        }
+        return filterByYear(year -> year >= startYear && year <= endYear);
+    }
+
+    TimeSeries copy() {
+        TimeSeries copy = new TimeSeries();
+        for (Map.Entry<Integer, Double> entry : this.entrySet()) {
+            copy.put(entry.getKey(), entry.getValue());
+        }
+        return copy;
     }
     // DONE: Remove all T0D0 comments before submitting.
 }

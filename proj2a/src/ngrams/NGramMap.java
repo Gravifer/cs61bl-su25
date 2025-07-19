@@ -1,6 +1,7 @@
 package ngrams;
 
 import java.util.Collection;
+import java.util.Map;
 
 import static ngrams.TimeSeries.MAX_YEAR;
 import static ngrams.TimeSeries.MIN_YEAR;
@@ -16,8 +17,22 @@ import static ngrams.TimeSeries.MIN_YEAR;
  * @author Josh Hug
  */
 public class NGramMap {
+    // DONE: Add any necessary static/instance variables.
 
-    // TODO: Add any necessary static/instance variables.
+    /** The class wordHistory is a TimeSeries that stores the history of a single word. */
+    private class WordHistory extends TimeSeries {
+        /** Copy constructor */
+        WordHistory() {
+            super();
+        }
+
+        private WordHistory(WordHistory wh) {
+            super();
+            this.putAll(wh);
+        }
+    }
+    private Map <String, WordHistory> data;
+    private TimeSeries totalCounts;
 
     /**
      * Constructs an NGramMap from WORDSFILENAME and COUNTSFILENAME.
@@ -34,8 +49,15 @@ public class NGramMap {
      * returns an empty TimeSeries.
      */
     public TimeSeries countHistory(String word, int startYear, int endYear) {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        if (startYear < MIN_YEAR || endYear > MAX_YEAR || startYear > endYear) {
+            throw new IllegalArgumentException("Invalid year range: " + startYear + " to " + endYear);
+        }
+        if (data.containsKey(word)) {
+            WordHistory history = data.get(word);
+            return history.filterByYearRange(startYear, endYear); // cast made
+        }
+        return new WordHistory();
     }
 
     /**
@@ -45,16 +67,22 @@ public class NGramMap {
      * is not in the data files, returns an empty TimeSeries.
      */
     public TimeSeries countHistory(String word) {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        if (data.containsKey(word)) {
+            return data.get(word).copy();
+        }
+        return new WordHistory();
     }
 
     /**
      * Returns a defensive copy of the total number of words recorded per year in all volumes.
      */
     public TimeSeries totalCountHistory() {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        if (totalCounts != null) {
+            return totalCounts.copy(); // defensive copy
+        }
+        return new TimeSeries();
     }
 
     /**
@@ -63,8 +91,28 @@ public class NGramMap {
      * TimeSeries.
      */
     public TimeSeries weightHistory(String word, int startYear, int endYear) {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        if (startYear < MIN_YEAR || endYear > MAX_YEAR || startYear > endYear) {
+            throw new IllegalArgumentException("Invalid year range: " + startYear + " to " + endYear);
+        }
+        if (data.containsKey(word)) {
+            // TimeSeries countHistory = data.get(word).filterByYearRange(startYear, endYear);
+            // TimeSeries totalCounts = this.totalCountHistory().filterByYearRange(startYear, endYear);
+            // TimeSeries weightHistory = new TimeSeries();
+            // for (Integer year : countHistory.years()) {
+            //     double count = countHistory.get(year);
+            //     double totalCount = totalCounts.get(year);
+            //     if (totalCount > 0) {
+            //         weightHistory.put(year, count / totalCount);
+            //     } else {
+            //         weightHistory.put(year, 0.0);
+            //     }
+            // }
+            // return weightHistory;
+            return data.get(word).filterByYearRange(startYear, endYear)
+                    .dividedBy(this.totalCountHistory().filterByYearRange(startYear, endYear));
+        }
+        return new TimeSeries();
     }
 
     /**
@@ -73,8 +121,11 @@ public class NGramMap {
      * TimeSeries.
      */
     public TimeSeries weightHistory(String word) {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        if (data.containsKey(word)) {
+            return data.get(word).dividedBy(data.get(word));
+        }
+        return new TimeSeries();
     }
 
     /**
@@ -84,8 +135,19 @@ public class NGramMap {
      */
     public TimeSeries summedWeightHistory(Collection<String> words,
                                           int startYear, int endYear) {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        if (startYear < MIN_YEAR || endYear > MAX_YEAR || startYear > endYear) {
+            throw new IllegalArgumentException("Invalid year range: " + startYear + " to " + endYear);
+        }
+        TimeSeries summedWeights = new TimeSeries();
+        for (String word : words) {
+            TimeSeries weightHistory = weightHistory(word, startYear, endYear);
+            for (Integer year : weightHistory.years()) {
+                double weight = weightHistory.get(year);
+                summedWeights.put(year, summedWeights.getOrDefault(year, 0.0) + weight);
+            }
+        }
+        return summedWeights;
     }
 
     /**
@@ -93,10 +155,18 @@ public class NGramMap {
      * exist in this time frame, ignore it rather than throwing an exception.
      */
     public TimeSeries summedWeightHistory(Collection<String> words) {
-        // TODO: Fill in this method.
-        return null;
+        // DONE: Fill in this method.
+        TimeSeries summedWeights = new TimeSeries();
+        for (String word : words) {
+            TimeSeries weightHistory = weightHistory(word);
+            for (Integer year : weightHistory.years()) {
+                double weight = weightHistory.get(year);
+                summedWeights.put(year, summedWeights.getOrDefault(year, 0.0) + weight);
+            }
+        }
+        return summedWeights;
     }
 
     // TODO: Add any private helper methods.
-    // TODO: Remove all TODO comments before submitting.
+    // TODO: Remove all T0D0 comments before submitting.
 }
