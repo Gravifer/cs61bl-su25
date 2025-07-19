@@ -1,6 +1,7 @@
 import ngrams.NGramMap;
 import ngrams.TimeSeries;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -52,10 +53,11 @@ public class NGramMapTest {
         }
     }
 
+    @Disabled("less_short.csv does not exist in the old version of distributed data")
     @Test
     public void testOnShortFile() {
         // creates an NGramMap from a large dataset
-        NGramMap ngm = new NGramMap(SHORTER_WORDS_FILE,
+        NGramMap ngm = new NGramMap(SHORTER_WORDS_FILE, // ! does not exist in the old version of distributed data
                 TOTAL_COUNTS_FILE);
 
         // returns the count of the number of occurrences of economically per year between 2000 and 2010.
@@ -72,6 +74,13 @@ public class NGramMapTest {
     }
     @Test
     public void testOnLargeFile() {
+        // // skip this test if testOnShortFile did not succeed
+        // try {
+        //     testOnShortFile();
+        // } catch (Exception e) {
+        //     org.junit.Assume.assumeNoException("testOnShortFile did not succeed, skipping testOnLargeFile", e);
+        // }
+
         // creates an NGramMap from a large dataset
         NGramMap ngm = new NGramMap(TOP_14337_WORDS_FILE,
                 TOTAL_COUNTS_FILE);
@@ -100,4 +109,40 @@ public class NGramMapTest {
         assertThat(fishPlusDogWeight.get(1865)).isWithin(1E-10).of(expectedFishPlusDogWeight1865);
     }
 
+    @Test
+    public void testOnLargerFile() {
+        // skip this test if testOnLargeFile did not succeed
+        try {
+            testOnLargeFile();
+        } catch (Exception e) {
+            org.junit.Assume.assumeNoException("testOnLargeFile did not succeed, skipping testOnLargerFile", e);
+        }
+
+        // creates an NGramMap from a large dataset
+        NGramMap ngm = new NGramMap(TOP_49887_WORDS_FILE,
+                TOTAL_COUNTS_FILE);
+
+        // returns the count of the number of occurrences of fish per year between 1850 and 1933.
+        TimeSeries fishCount = ngm.countHistory("fish", 1850, 1933);
+        assertThat(fishCount.get(1865)).isWithin(1E-10).of(136497.0);
+        assertThat(fishCount.get(1922)).isWithin(1E-10).of(444924.0);
+
+        TimeSeries totalCounts = ngm.totalCountHistory();
+        assertThat(totalCounts.get(1865)).isWithin(1E-10).of(2563919231.0);
+
+        // returns the relative weight of the word fish in each year between 1850 and 1933.
+        TimeSeries fishWeight = ngm.weightHistory("fish", 1850, 1933);
+        assertThat(fishWeight.get(1865)).isWithin(1E-7).of(136497.0/2563919231.0);
+
+        TimeSeries dogCount = ngm.countHistory("dog", 1850, 1876);
+        assertThat(dogCount.get(1865)).isWithin(1E-10).of(75819.0);
+
+        List<String> fishAndDog = new ArrayList<>();
+        fishAndDog.add("fish");
+        fishAndDog.add("dog");
+        TimeSeries fishPlusDogWeight = ngm.summedWeightHistory(fishAndDog, 1865, 1866);
+
+        double expectedFishPlusDogWeight1865 = (136497.0 + 75819.0) / 2563919231.0;
+        assertThat(fishPlusDogWeight.get(1865)).isWithin(1E-10).of(expectedFishPlusDogWeight1865);
+    }
 }  

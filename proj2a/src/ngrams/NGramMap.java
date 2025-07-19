@@ -1,10 +1,14 @@
 package ngrams;
 
+import edu.princeton.cs.algs4.In;
+
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
 import static ngrams.TimeSeries.MAX_YEAR;
 import static ngrams.TimeSeries.MIN_YEAR;
+import static utils.Utils.*;
 
 /**
  * An object that provides utility methods for making queries on the
@@ -31,14 +35,63 @@ public class NGramMap {
             this.putAll(wh);
         }
     }
-    private Map <String, WordHistory> data;
-    private TimeSeries totalCounts;
+    private final HashMap<String, WordHistory> data;
+    private final TimeSeries dataCounts;
+    private final TimeSeries totalCounts;
 
     /**
      * Constructs an NGramMap from WORDSFILENAME and COUNTSFILENAME.
      */
     public NGramMap(String wordsFilename, String countsFilename) {
-        // TODO: Fill in this constructor. See the "NGramMap Tips" section of the spec for help.
+        // DONE: Fill in this constructor. See the "NGramMap Tips" section of the spec for help.
+        if (wordsFilename == null || countsFilename == null) {
+            throw new IllegalArgumentException("Filenames cannot be null.");
+        }
+        In wf = new In(wordsFilename);
+        In cf = new In(countsFilename);
+        // check that files exist, are non-empty and readable
+        if (!wf.exists() || !cf.exists() || wf.isEmpty() || cf.isEmpty()) {
+            System.err.println("Error: Files not found.");
+            System.err.println("Working dir: " + System.getProperty("user.dir"));
+            System.err.println("Words file: " + wordsFilename);
+            System.err.println("Counts file: " + countsFilename);
+            throw new IllegalArgumentException("Files do not exist or are empty.");
+        }
+        data = new HashMap<>();
+        dataCounts = new TimeSeries();
+        totalCounts = new TimeSeries();
+
+        while (wf.hasNextLine()) { // Read the words file
+            String line = wf.readLine();
+            String[] parts = line.split("\t");
+            if (parts.length < 3) {
+                continue; // skip malformed lines
+            }
+            String word = parts[0];
+            int year = Integer.parseInt(parts[1]);
+            double count = Double.parseDouble(parts[2]);
+            if (year < MIN_YEAR || year > MAX_YEAR) {
+                continue; // skip out-of-range years
+            }
+
+            data.putIfAbsent(word, new WordHistory());
+            data.get(word).put(year, count);
+            // // dataCounts.put(year, dataCounts.getOrDefault(year, 0.0) + count); // ? not what asked by the course; we read total counts separately
+        }
+
+        while (cf.hasNextLine()) { // Read the counts file
+            String line = cf.readLine();
+            String[] parts = line.split(",");
+            if (parts.length < 2) {
+                continue; // skip malformed lines
+            }
+            int year = Integer.parseInt(parts[0]);
+            double totalCount = Double.parseDouble(parts[1]);
+            if (year < MIN_YEAR || year > MAX_YEAR) {
+                continue; // skip out-of-range years
+            }
+            totalCounts.put(year, totalCount);
+        }
     }
 
     /**
@@ -79,8 +132,9 @@ public class NGramMap {
      */
     public TimeSeries totalCountHistory() {
         // DONE: Fill in this method.
-        if (totalCounts != null) {
-            return totalCounts.copy(); // defensive copy
+        TimeSeries targetCounts = totalCounts;
+        if (targetCounts != null) {
+            return targetCounts.copy(); // defensive copy
         }
         return new TimeSeries();
     }
