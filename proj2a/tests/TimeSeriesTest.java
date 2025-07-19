@@ -61,4 +61,212 @@ public class TimeSeriesTest {
         assertThat(totalPopulation.years()).isEmpty();
         assertThat(totalPopulation.data()).isEmpty();
     }
+
+    @Test
+    public void testConstructorWithRange() {
+        TimeSeries ts = new TimeSeries();
+        ts.put(1990, 1.0);
+        ts.put(1995, 2.0);
+        ts.put(2000, 3.0);
+
+        TimeSeries rangeTs = new TimeSeries(ts, 1992, 1998);
+
+        assertThat(rangeTs.years()).containsExactly(1995);
+        assertThat(rangeTs.data()).containsExactly(2.0);
+    }
+
+    @Test
+    public void testConstructorWithRangeEmpty() {
+        TimeSeries ts = new TimeSeries();
+        ts.put(1990, 1.0);
+        ts.put(1995, 2.0);
+        ts.put(2000, 3.0);
+
+        TimeSeries rangeTs = new TimeSeries(ts, 2001, 2005);
+
+        assertThat(rangeTs.years()).isEmpty();
+        assertThat(rangeTs.data()).isEmpty();
+    }
+
+    @Test
+    public void testPlusWithEmpty() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, 1.0);
+
+        TimeSeries ts2 = new TimeSeries();
+
+        TimeSeries result = ts1.plus(ts2);
+
+        assertThat(result.years()).containsExactly(2000);
+        assertThat(result.data()).containsExactly(1.0);
+    }
+
+    @Test
+    public void testDividedByWithEmpty() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, 1.0);
+
+        TimeSeries ts2 = new TimeSeries();
+
+        try {
+            ts1.dividedBy(ts2);
+        } catch (IllegalArgumentException e) {
+            assertThat(e).hasMessageThat().contains("Cannot divide by an empty TimeSeries.");
+        }
+    }
+
+    @Test
+    public void testDividedByWithMissingYear() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, 1.0);
+        ts1.put(2001, 2.0);
+
+        TimeSeries ts2 = new TimeSeries();
+        ts2.put(2000, 1.0);
+
+        try {
+            ts1.dividedBy(ts2);
+        } catch (IllegalArgumentException e) {
+            assertThat(e).hasMessageThat().contains("TS is missing year: 2001");
+        }
+    }
+
+    @Test
+    public void testDividedByWithZeroValue() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, 1.0);
+
+        TimeSeries ts2 = new TimeSeries();
+        ts2.put(2000, 0.0);
+
+        try {
+            ts1.dividedBy(ts2);
+        } catch (IllegalArgumentException e) {
+            assertThat(e).hasMessageThat().contains("Division by zero for year: 2000");
+        }
+    }
+
+    @Test
+    public void testPlusWithYears() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, 1.0);
+        ts1.put(2001, 2.0);
+
+        TimeSeries ts2 = new TimeSeries();
+        ts2.put(2001, 3.0);
+        ts2.put(2002, 4.0);
+
+        TimeSeries result = ts1.plus(ts2);
+
+        assertThat(result.years()).containsExactly(2000, 2001, 2002);
+        assertThat(result.data()).containsExactly(1.0, 5.0, 4.0);
+    }
+
+    @Test
+    public void testPlusWithSameYears() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, 1.0);
+        ts1.put(2001, 2.0);
+
+        TimeSeries ts2 = new TimeSeries();
+        ts2.put(2000, 3.0);
+        ts2.put(2001, 4.0);
+
+        TimeSeries result = ts1.plus(ts2);
+
+        assertThat(result.years()).containsExactly(2000, 2001);
+        assertThat(result.data()).containsExactly(4.0, 6.0);
+    }
+
+    @Test
+    public void testPlusWithNoYears() {
+        TimeSeries ts1 = new TimeSeries();
+        TimeSeries ts2 = new TimeSeries();
+
+        TimeSeries result = ts1.plus(ts2);
+
+        assertThat(result.years()).isEmpty();
+        assertThat(result.data()).isEmpty();
+    }
+
+    @Test
+    public void testPlusWithNegativeValues() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, -1.0);
+        ts1.put(2001, 2.0);
+
+        TimeSeries ts2 = new TimeSeries();
+        ts2.put(2001, -3.0);
+        ts2.put(2002, 4.0);
+
+        TimeSeries result = ts1.plus(ts2);
+
+        assertThat(result.years()).containsExactly(2000, 2001, 2002);
+        assertThat(result.data()).containsExactly(-1.0, -1.0, 4.0);
+    }
+
+    @Test
+    public void testDividedByWithSameYears() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, 10.0);
+        ts1.put(2001, 20.0);
+
+        TimeSeries ts2 = new TimeSeries();
+        ts2.put(2000, 2.0);
+        ts2.put(2001, 4.0);
+
+        TimeSeries result = ts1.dividedBy(ts2);
+
+        assertThat(result.years()).containsExactly(2000, 2001);
+        assertThat(result.data()).containsExactly(5.0, 5.0);
+    }
+
+    @Test
+    public void testDividedByWithNegativeValues() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, -10.0);
+        ts1.put(2001, 20.0);
+
+        TimeSeries ts2 = new TimeSeries();
+        ts2.put(2000, -2.0);
+        ts2.put(2001, 4.0);
+
+        TimeSeries result = ts1.dividedBy(ts2);
+
+        assertThat(result.years()).containsExactly(2000, 2001);
+        assertThat(result.data()).containsExactly(5.0, 5.0);
+    }
+
+    @Test
+    public void testDividedByWithZeroValues() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, 10.0);
+        ts1.put(2001, 20.0);
+
+        TimeSeries ts2 = new TimeSeries();
+        ts2.put(2000, 0.0);
+        ts2.put(2001, 4.0);
+
+        try {
+            ts1.dividedBy(ts2);
+        } catch (IllegalArgumentException e) {
+            assertThat(e).hasMessageThat().contains("Division by zero for year: 2000");
+        }
+    }
+
+    @Test
+    public void testDividedByWithNegativeYears() {
+        TimeSeries ts1 = new TimeSeries();
+        ts1.put(2000, -10.0);
+        ts1.put(2001, 20.0);
+
+        TimeSeries ts2 = new TimeSeries();
+        ts2.put(2000, -2.0);
+        ts2.put(2001, 4.0);
+
+        TimeSeries result = ts1.dividedBy(ts2);
+
+        assertThat(result.years()).containsExactly(2000, 2001);
+        assertThat(result.data()).containsExactly(5.0, 5.0);
+    }
 } 
