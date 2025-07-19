@@ -97,6 +97,16 @@ public class TimeSeries extends TreeMap<Integer, Double> {
             double thisValue = this.getOrDefault(year, 0.0);
             double tsValue = ts.getOrDefault(year, 0.0);
             result.put(year, thisValue + tsValue);
+            // the bellow is somewhat verbose
+            // double sum;
+            // if (this.containsKey(year) && ts.containsKey(year)) {
+            //     sum = this.get(year) + ts.get(year);
+            // } else if (this.containsKey(year)) {
+            //     sum = this.get(year);
+            // } else {
+            //     sum = ts.get(year);
+            // }
+            // result.put(year, sum);
         }
 
         return result;
