@@ -15,7 +15,7 @@ public class HashMap<K, V> implements Map61BL<K, V> {
     }
 
     public HashMap(int initialCapacity) {
-        buckets = (LinkedList<Entry61BL<K, V>>[]) new LinkedList[initialCapacity];
+        buckets = new LinkedList[initialCapacity];
         for (int i = 0; i < initialCapacity; i++) {
             buckets[i] = new LinkedList<>(); // LinkedList<Entry<K, V>>();
         }
@@ -91,6 +91,12 @@ public class HashMap<K, V> implements Map61BL<K, V> {
 
         // If key does not exist, add a new entry
         bucket.add(new Entry61BL<>(key, value));
+        // and _then_ check if resizing is needed
+        if (loadFactor() >= 0.75) {
+            resize(ResizeDirective.UP); // Resize up if load factor exceeds threshold
+            index = keyIndex(key); // Recalculate index after resizing
+            bucket = buckets[index]; // Get the new bucket
+        }
     }
 
     /**
@@ -105,8 +111,11 @@ public class HashMap<K, V> implements Map61BL<K, V> {
 
         // Iterate through the bucket to find the entry
         for (Entry61BL<K, V> entry : bucket) {
-            if (entry.keyEquals(new Entry61BL<>(key, null))) {
+            if (entry.key.equals(key)) {
                 bucket.remove(entry); // Remove the entry
+                if (loadFactor() <= 0.25 && capacity() > 16) {
+                    resize(ResizeDirective.DOWN); // Resize down if load factor is below threshold
+                }
                 return entry.value; // Return the value of the removed entry
             }
         }
@@ -126,8 +135,11 @@ public class HashMap<K, V> implements Map61BL<K, V> {
 
         // Iterate through the bucket to find the entry
         for (Entry61BL<K, V> entry : bucket) {
-            if (entry.keyEquals(new Entry61BL<>(key, null)) && entry.value.equals(value)) {
+            if (entry.key.equals(key) && entry.value.equals(value)) {
                 bucket.remove(entry); // Remove the entry if key and value match
+                if (loadFactor() <= 0.25 && capacity() > 16) {
+                    resize(ResizeDirective.DOWN); // Resize down if load factor is below threshold
+                }
                 return true; // Successfully removed
             }
         }
@@ -149,8 +161,38 @@ public class HashMap<K, V> implements Map61BL<K, V> {
     /**
      * @return the number of buckets in this map, which is the capacity.
      */
-    public int capacity() {
+    int capacity() {
         return buckets.length; // Return the number of buckets as the capacity
+    }
+
+    private double loadFactor() { // use 0.75 as threshold
+        return size() / (double) capacity(); // Calculate load factor as size divided by capacity
+    }
+
+    private enum ResizeDirective {
+        UP, DOWN
+    }
+    private boolean resize(ResizeDirective directive) {
+        // // check if resizing is necessary
+        // if ((directive == ResizeDirective.UP && loadFactor() < 0.75) ||
+        //     (directive == ResizeDirective.DOWN && loadFactor() > 0.25)) {
+        //     return false; // No resizing needed
+        // }
+        int newCapacity = (directive == ResizeDirective.UP) ? capacity() * 2 : capacity() / 2;
+        LinkedList<Entry61BL<K, V>>[] newBuckets = new LinkedList[newCapacity];
+        for (int i = 0; i < newCapacity; i++) {
+            newBuckets[i] = new LinkedList<>(); // Initialize new buckets
+        }
+
+        // Rehash all entries into the new buckets
+        for (LinkedList<Entry61BL<K, V>> bucket : buckets) {
+            for (Entry61BL<K, V> entry : bucket) {
+                int newIndex = Math.floorMod(entry.key.hashCode(), newCapacity);
+                newBuckets[newIndex].add(entry); // Add entry to the new bucket
+            }
+        }
+        buckets = newBuckets; // Update the buckets reference
+        return true; // Resizing was successful
     }
 
     private class KeyIterator implements Iterator<K> {
