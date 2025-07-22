@@ -69,26 +69,56 @@ public class MinHeap<E extends Comparable<E>> {
 
     /* Returns the index of the left child of the element at index INDEX. */
     private int getLeftOf(int index) {
-        // TODO: YOUR CODE HERE
-        return -1;
+        // DONE: YOUR CODE HERE
+        if (index < 1) {
+            return -1; // Invalid index
+        }
+        return 2 * index;
     }
 
     /* Returns the index of the right child of the element at index INDEX. */
     private int getRightOf(int index) {
-        // TODO: YOUR CODE HERE
-        return -1;
+        // DONE: YOUR CODE HERE
+        if (index < 1) {
+            return -1; // Invalid index
+        }
+        return 2 * index;
     }
 
     /* Returns the index of the parent of the element at index INDEX. */
     private int getParentOf(int index) {
-        // TODO: YOUR CODE HERE
-        return -1;
+        // DONE: YOUR CODE HERE
+        if (index <= 1) {
+            return -1; // Invalid index / the root has no parent
+        }
+        return index / 2;
     }
 
     /* Returns the index of the smaller element. At least one index has a
        non-null element. If the elements are equal, return either index. */
     private int min(int index1, int index2) {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        if (index1 < 1 || index2 < 1 || index1 >= contents.size() || index2 >= contents.size()) {
+            throw new IndexOutOfBoundsException("Index out of bounds: " + index1 + ", " + index2);
+        }
+        if (index1 == index2) {
+            return index1; // Both indices are the same, return either
+        }
+        E element1 = getElement(index1);
+        E element2 = getElement(index2);
+        if (element1 == null && element2 == null) {
+            return -1; // Both elements are null, no valid index
+        } else if (element1 == null) {
+            return index2;
+        } else if (element2 == null) {
+            return index1;
+        }
+        int comparison = element1.compareTo(element2);
+        if (comparison <= 0) {
+            return index1;
+        } else if (comparison > 0) {
+            return index2;
+        }
         return -1;
     }
 
