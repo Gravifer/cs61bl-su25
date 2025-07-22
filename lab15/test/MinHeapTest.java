@@ -57,7 +57,7 @@ public class MinHeapTest {
     public void testInsertDuplicateThrows() {
         MinHeap<String> heap = new MinHeap<>();
         heap.insert("a");
-        heap.insert("a"); // 应抛出异常
+        heap.insert("a");
     }
 
     @Test(expected = IllegalArgumentException.class)

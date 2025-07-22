@@ -137,46 +137,42 @@ public class MinHeap<E extends Comparable<E>> {
     }
 
     /* Bubbles up the element currently at index INDEX. */
-    private void bubbleUp(int index) { // TODO: make this iterative
-        // DONE: YOUR CODE HERE
-        if (index <= 1 || index > size()) {
-            return; // The root has no parent to bubble up to
-        }
-        E currentElement = Objects.requireNonNull(getElement(index));
-        int parentIndex = getParentOf(index);
-        E parentElement = Objects.requireNonNull(getElement(parentIndex));
-        if (currentElement.compareTo(parentElement) < 0) {
-            // Swap the current element with its parent
-            swap(index, parentIndex);
-            // Recursively bubble up the parent index
-            bubbleUp(parentIndex);
+    private void bubbleUp(int index) {
+        while (index > 1 && index <= size()) {
+            int parentIndex = getParentOf(index);
+            E currentElement = Objects.requireNonNull(getElement(index));
+            E parentElement = Objects.requireNonNull(getElement(parentIndex));
+            if (currentElement.compareTo(parentElement) < 0) {
+                swap(index, parentIndex);
+                index = parentIndex;
+            } else {
+                break;
+            }
         }
     }
 
     /* Bubbles down the element currently at index INDEX. */
-    private void bubbleDown(int index) { // TODO: make this iterative
-        // DONE: YOUR CODE HERE
-        if (index < 1 || index > size()) {
-            return; // Invalid index
-        }
-        int smallestIndex = index;
-        E currentElement = Objects.requireNonNull(getElement(index));
-        int leftChildIndex = getLeftOf(index);
-        int rightChildIndex = getRightOf(index);
-        E leftChildElement = getElement(leftChildIndex);
-        E rightChildElement = getElement(rightChildIndex);
-        if (leftChildElement != null && currentElement.compareTo(leftChildElement) > 0) {
-            smallestIndex = leftChildIndex; // Left child smaller
-        }
-        E smallerElement = Objects.requireNonNull(getElement(smallestIndex));
-        if (rightChildElement != null && smallerElement.compareTo(rightChildElement) > 0) {
-            smallestIndex = rightChildIndex; // Right child smaller
-        }
-        if (smallestIndex != index) {
-            // Swap the current element with the smallest child
-            swap(index, smallestIndex);
-            // Recursively bubble down the smallest index
-            bubbleDown(smallestIndex);
+    private void bubbleDown(int index) {
+        while (index >= 1 && index <= size()) {
+            int leftChildIndex = getLeftOf(index);
+            int rightChildIndex = getRightOf(index);
+            int smallestIndex = index;
+            E currentElement = Objects.requireNonNull(getElement(index));
+            E leftChildElement = getElement(leftChildIndex);
+            E rightChildElement = getElement(rightChildIndex);
+            if (leftChildElement != null && currentElement.compareTo(leftChildElement) > 0) {
+                smallestIndex = leftChildIndex;
+            }
+            E smallerElement = getElement(smallestIndex);
+            if (rightChildElement != null && smallerElement != null && smallerElement.compareTo(rightChildElement) > 0) {
+                smallestIndex = rightChildIndex;
+            }
+            if (smallestIndex != index && getElement(smallestIndex) != null) {
+                swap(index, smallestIndex);
+                index = smallestIndex;
+            } else {
+                break;
+            }
         }
     }
 
