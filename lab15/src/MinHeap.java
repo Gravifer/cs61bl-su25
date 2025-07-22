@@ -1,13 +1,16 @@
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 /* A MinHeap class of Comparable elements backed by an ArrayList. */
 public class MinHeap<E extends Comparable<E>> {
 
     /* An ArrayList that stores the elements in this MinHeap. */
-    private ArrayList<E> contents;
+    private final ArrayList<E> contents;
     private int size;
-    // TODO: YOUR CODE HERE (no code should be needed here if not implementing the more optimized version)
+    // DONE: YOUR CODE HERE (no code should be needed here if not implementing the more optimized version)
+    private final HashMap<E, Integer> indexMap = new HashMap<>();
 
     /* Initializes an empty MinHeap. */
     public MinHeap() {
@@ -42,6 +45,11 @@ public class MinHeap<E extends Comparable<E>> {
         E element2 = getElement(index2);
         setElement(index2, element1);
         setElement(index1, element2);
+        // update indexMap if using it
+        if (indexMap != null) {
+            indexMap.put(element1, index2);
+            indexMap.put(element2, index1);
+        }
     }
 
     /* Prints out the underlying heap sideways. Use for debugging. */
@@ -86,14 +94,14 @@ public class MinHeap<E extends Comparable<E>> {
         if (index < 1 || index > size()) {
             return -1; // Invalid index
         }
-        return 2 * index;
+        return 2 * index + 1;
     }
 
     /* Returns the index of the parent of the element at index INDEX. */
     private int getParentOf(int index) {
         // DONE: YOUR CODE HERE
         if (index <= 1 || index > size()) {
-            return -1; // Invalid index / the root has no parent
+            return -1; // Invalid index, or the root has no parent
         }
         return index / 2;
     }
@@ -179,16 +187,16 @@ public class MinHeap<E extends Comparable<E>> {
     /* Returns the number of elements in the MinHeap. */
     public int size() { // TODO: OPTIMIZE THIS TO MAKE IT O(1), using the size field
         // DONE: YOUR CODE HERE
-        // return size;
-        if (contents == null || contents.isEmpty()) {
-            return 0; // No elements in the heap
-        }
-        // The size of the heap is the number of elements in the contents list minus the null at index 0
-        return contents.size() - 1; // Exclude the null at index 0
+        return size;
+        // if (contents == null || contents.isEmpty()) {
+        //     return 0; // No elements in the heap
+        // }
+        // // The size of the heap is the number of elements in the contents list minus the null at index 0
+        // return contents.size() - 1; // Exclude the null at index 0
     }
 
     /* Inserts ELEMENT into the MinHeap. If ELEMENT is already in the MinHeap,
-     * throw an IllegalArgumentException.*/
+     * throws an IllegalArgumentException. */
     public void insert(E element) {
         // DONE: YOUR CODE HERE
         if (element == null) {
@@ -200,6 +208,9 @@ public class MinHeap<E extends Comparable<E>> {
         // // contents.add(element); // Add the new element to the end of the list
         setElement(size() + 1, element); // * done this way to enforce abstraction
         size++; // Increase the size of the heap
+        if (indexMap != null) {
+            indexMap.put(element, size()); // Update the index map if using it
+        }
         bubbleUp(size()); // Bubble up the new element to maintain the heap property
     }
 
@@ -209,36 +220,72 @@ public class MinHeap<E extends Comparable<E>> {
         if (size() < 1) {
             return null; // No elements to remove
         }
-        E minElement = findMin(); // The smallest element is at index 1
+        E minElement = findMin();
         if (minElement == null) {
             return null; // No valid element to remove
         }
         // Move the last element to the root and bubble down
         E lastElement = getElement(size());
-        setElement(1, lastElement); // Move the last element to the root
-        contents.remove(size()); // Remove the last element
-        size--; // Decrease the size of the heap
-        bubbleDown(1); // Bubble down the new root element
+        setElement(1, lastElement);
+        contents.remove(size());
+        size--;
+        if (indexMap != null) {
+            indexMap.remove(minElement);
+            if (lastElement != null) {
+                indexMap.put(lastElement, 1);
+            }
+        }
+        bubbleDown(1);
         return minElement;
     }
 
     /* Replaces and updates the position of ELEMENT inside the MinHeap, which
      * may have been mutated since the initial insert. If a copy of ELEMENT does
-     * not exist in the MinHeap, throw a NoSuchElementException. Item equality
+     * not exist in the MinHeap, throws a NoSuchElementException. Item equality
      * should be checked using .equals(), not ==. */
     public void update(E element) {
-        // TODO: OPTIONAL
+        if (element == null) {
+            throw new IllegalArgumentException("Cannot update null element in MinHeap.");
+        }
+        int index = getIndexOf(element);
+        if (index == -1) {
+            throw new NoSuchElementException("Element not found in MinHeap: " + element);
+        }
+        E currentElement = Objects.requireNonNull(getElement(index));
+        if (element.equals(currentElement)) {
+            return;
+        }
+        setElement(index, element);
+        if (indexMap != null) {
+            indexMap.remove(currentElement, index);
+            indexMap.put(element, index);
+        }
+        int compare = element.compareTo(currentElement);
+        if (compare < 0) {
+            bubbleUp(index);
+        } else if (compare > 0) {
+            bubbleDown(index);
+        }
     }
 
     /* Returns true if ELEMENT is contained in the MinHeap. Item equality should
      * be checked using .equals(), not ==. */
     public boolean contains(E element) {
-        // TODO: OPTIONAL - OPTIMIZE THE SPEED OF THIS TO MAKE IT CONSTANT
+        return getIndexOf(element) != -1;
+    }
+
+    private int getIndexOf(E element) {
+        // DONE: OPTIONAL - OPTIMIZE THE SPEED OF THIS TO MAKE IT CONSTANT
+        // use the indexMap if it exists for faster lookup
+        if (indexMap != null) {
+            Integer index = indexMap.get(element);
+            return (index != null) ? index : -1;
+        }
         for (int i = 1; i < contents.size(); i++) {
             if (element.equals(contents.get(i))) {
-                return true;
+                return i;
             }
         }
-        return false;
+        return -1;
     }
 }
