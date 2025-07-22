@@ -96,4 +96,57 @@ public class MinHeapTest {
         assertThat(heap.size()).isEqualTo(0);
     }
 
+    @Test
+    public void testComplexSequence1() {
+        MinHeap<Integer> heap = new MinHeap<>();
+        heap.insert(10);
+        heap.insert(4);
+        heap.insert(15);
+        heap.insert(2);
+        assertThat(heap.findMin()).isEqualTo(2);
+        assertThat(heap.size()).isEqualTo(4);
+        assertThat(heap.removeMin()).isEqualTo(2);
+        assertThat(heap.findMin()).isEqualTo(4);
+        heap.insert(1);
+        assertThat(heap.findMin()).isEqualTo(1);
+        assertThat(heap.contains(10)).isTrue();
+        assertThat(heap.contains(2)).isFalse();
+        heap.insert(7);
+        assertThat(heap.size()).isEqualTo(5);
+        assertThat(heap.removeMin()).isEqualTo(1);
+        assertThat(heap.removeMin()).isEqualTo(4);
+        assertThat(heap.removeMin()).isEqualTo(7);
+        assertThat(heap.removeMin()).isEqualTo(10);
+        assertThat(heap.removeMin()).isEqualTo(15);
+        assertThat(heap.removeMin()).isNull();
+        assertThat(heap.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void testComplexSequence2() {
+        MinHeap<String> heap = new MinHeap<>();
+        heap.insert("delta");
+        heap.insert("alpha");
+        heap.insert("charlie");
+        heap.insert("bravo");
+        assertThat(heap.findMin()).isEqualTo("alpha");
+        heap.removeMin(); // remove alpha
+        assertThat(heap.findMin()).isEqualTo("bravo");
+        heap.insert("echo");
+        heap.insert("foxtrot");
+        assertThat(heap.contains("alpha")).isFalse();
+        assertThat(heap.contains("echo")).isTrue();
+        assertThat(heap.size()).isEqualTo(5);
+        heap.removeMin(); // remove bravo
+        heap.removeMin(); // remove charlie
+        assertThat(heap.findMin()).isEqualTo("delta");
+        heap.removeMin(); // remove delta
+        assertThat(heap.findMin()).isEqualTo("echo");
+        heap.removeMin(); // remove echo
+        assertThat(heap.findMin()).isEqualTo("foxtrot");
+        heap.removeMin(); // remove foxtrot
+        assertThat(heap.findMin()).isNull();
+        assertThat(heap.size()).isEqualTo(0);
+    }
+
 }
