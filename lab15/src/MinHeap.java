@@ -124,24 +124,65 @@ public class MinHeap<E extends Comparable<E>> {
 
     /* Returns but does not remove the smallest element in the MinHeap. */
     public E findMin() {
-        // TODO: YOUR CODE HERE
-        return null;
+        // DONE: YOUR CODE HERE
+        if (size < 1) {
+            return null; // No elements in the heap
+        }
+        return getElement(1); // The smallest element is at index 1
     }
 
     /* Bubbles up the element currently at index INDEX. */
-    private void bubbleUp(int index) {
-        // TODO: YOUR CODE HERE
+    private void bubbleUp(int index) { // TODO: make this iterative
+        // DONE: YOUR CODE HERE
+        if (index <= 1) {
+            return; // The root has no parent to bubble up to
+        }
+        int parentIndex = getParentOf(index);
+        E currentElement = getElement(index);
+        E parentElement = getElement(parentIndex);
+        if (currentElement != null && parentElement != null && currentElement.compareTo(parentElement) < 0) {
+            // Swap the current element with its parent
+            swap(index, parentIndex);
+            // Recursively bubble up the parent index
+            bubbleUp(parentIndex);
+        }
     }
 
     /* Bubbles down the element currently at index INDEX. */
-    private void bubbleDown(int index) {
-        // TODO: YOUR CODE HERE
+    private void bubbleDown(int index) { // TODO: make this iterative
+        // DONE: YOUR CODE HERE
+        if (index < 1 || index >= contents.size()) {
+            return; // Invalid index
+        }
+        int leftChildIndex = getLeftOf(index);
+        int rightChildIndex = getRightOf(index);
+        int smallestIndex = index;
+        E currentElement = getElement(index);
+        E leftChildElement = getElement(leftChildIndex);
+        E rightChildElement = getElement(rightChildIndex);
+        if (leftChildElement != null && currentElement.compareTo(leftChildElement) > 0) {
+            smallestIndex = leftChildIndex; // Left child smaller
+        }
+        if (rightChildElement != null && getElement(smallestIndex) != null &&
+            getElement(smallestIndex).compareTo(rightChildElement) > 0) {
+            smallestIndex = rightChildIndex; // Right child smaller
+        }
+        if (smallestIndex != index) {
+            // Swap the current element with the smallest child
+            swap(index, smallestIndex);
+            // Recursively bubble down the smallest index
+            bubbleDown(smallestIndex);
+        }
     }
 
     /* Returns the number of elements in the MinHeap. */
-    public int size() {
-        // TODO: YOUR CODE HERE
-        return 0;
+    public int size() { // TODO: OPTIMIZE THIS TO MAKE IT O(1), using the size field
+        // DONE: YOUR CODE HERE
+        if (contents == null || contents.isEmpty()) {
+            return 0; // No elements in the heap
+        }
+        // The size of the heap is the number of elements in the contents list minus the null at index 0
+        return contents.size() - 1; // Exclude the null at index 0
     }
 
     /* Inserts ELEMENT into the MinHeap. If ELEMENT is already in the MinHeap,
@@ -152,8 +193,21 @@ public class MinHeap<E extends Comparable<E>> {
 
     /* Returns and removes the smallest element in the MinHeap, or null if there are none. */
     public E removeMin() {
-        // TODO: YOUR CODE HERE
-        return null;
+        // DONE: YOUR CODE HERE
+        if (size < 1) {
+            return null; // No elements to remove
+        }
+        E minElement = findMin(); // The smallest element is at index 1
+        if (minElement == null) {
+            return null; // No valid element to remove
+        }
+        // Move the last element to the root and bubble down
+        E lastElement = getElement(contents.size() - 1);
+        setElement(1, lastElement); // Move the last element to the root
+        contents.remove(contents.size() - 1); // Remove the last element
+        size--; // Decrease the size of the heap
+        bubbleDown(1); // Bubble down the new root element
+        return minElement;
     }
 
     /* Replaces and updates the position of ELEMENT inside the MinHeap, which
