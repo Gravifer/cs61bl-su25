@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Objects;
 
 /* A MinHeap class of Comparable elements backed by an ArrayList. */
 public class MinHeap<E extends Comparable<E>> {
@@ -16,7 +17,7 @@ public class MinHeap<E extends Comparable<E>> {
 
     /* Returns the element at index INDEX, and null if it is out of bounds. */
     private E getElement(int index) {
-        if (index >= contents.size()) {
+        if (index < 1 || index > size()) {
             return null;
         } else {
             return contents.get(index);
@@ -24,10 +25,13 @@ public class MinHeap<E extends Comparable<E>> {
     }
 
     /* Sets the element at index INDEX to ELEMENT. If the ArrayList is not big
-       enough, add elements until it is the right size. */
+     * enough, add elements until it is the right size. */
     private void setElement(int index, E element) {
-        while (index >= contents.size()) {
-            contents.add(null);
+        if (index < 1) {
+            throw new IndexOutOfBoundsException("Index must be greater than or equal to 1.");
+        }
+        while (index >= contents.size()) { // ? should the size of the heap increase as well or not?
+            contents.add(null); // ? if so, the heap is populated with nulls; if not, the tree is not complete
         }
         contents.set(index, element);
     }
@@ -70,7 +74,7 @@ public class MinHeap<E extends Comparable<E>> {
     /* Returns the index of the left child of the element at index INDEX. */
     private int getLeftOf(int index) {
         // DONE: YOUR CODE HERE
-        if (index < 1) {
+        if (index < 1 || index > size()) {
             return -1; // Invalid index
         }
         return 2 * index;
@@ -79,7 +83,7 @@ public class MinHeap<E extends Comparable<E>> {
     /* Returns the index of the right child of the element at index INDEX. */
     private int getRightOf(int index) {
         // DONE: YOUR CODE HERE
-        if (index < 1) {
+        if (index < 1 || index > size()) {
             return -1; // Invalid index
         }
         return 2 * index;
@@ -88,15 +92,15 @@ public class MinHeap<E extends Comparable<E>> {
     /* Returns the index of the parent of the element at index INDEX. */
     private int getParentOf(int index) {
         // DONE: YOUR CODE HERE
-        if (index <= 1) {
+        if (index <= 1 || index > size()) {
             return -1; // Invalid index / the root has no parent
         }
         return index / 2;
     }
 
     /* Returns the index of the smaller element. At least one index has a
-       non-null element. If the elements are equal, return either index. */
-    private int min(int index1, int index2) {
+     * non-null element. If the elements are equal, return either index. */
+    private int min(int index1, int index2) { // ? can this be more efficient using heap properties?
         // DONE: YOUR CODE HERE
         if (index1 < 1 || index2 < 1 || index1 >= contents.size() || index2 >= contents.size()) {
             throw new IndexOutOfBoundsException("Index out of bounds: " + index1 + ", " + index2);
@@ -107,19 +111,20 @@ public class MinHeap<E extends Comparable<E>> {
         E element1 = getElement(index1);
         E element2 = getElement(index2);
         if (element1 == null && element2 == null) {
-            return -1; // Both elements are null, no valid index
+            throw new IllegalArgumentException("Both elements are null, cannot determine minimum.");
         } else if (element1 == null) {
             return index2;
         } else if (element2 == null) {
             return index1;
         }
         int comparison = element1.compareTo(element2);
-        if (comparison <= 0) {
+        if (comparison < 0) {
             return index1;
         } else if (comparison > 0) {
             return index2;
+        } else {
+            return index1;
         }
-        return -1;
     }
 
     /* Returns but does not remove the smallest element in the MinHeap. */
@@ -134,13 +139,13 @@ public class MinHeap<E extends Comparable<E>> {
     /* Bubbles up the element currently at index INDEX. */
     private void bubbleUp(int index) { // TODO: make this iterative
         // DONE: YOUR CODE HERE
-        if (index <= 1) {
+        if (index <= 1 || index > size()) {
             return; // The root has no parent to bubble up to
         }
+        E currentElement = Objects.requireNonNull(getElement(index));
         int parentIndex = getParentOf(index);
-        E currentElement = getElement(index);
-        E parentElement = getElement(parentIndex);
-        if (currentElement != null && parentElement != null && currentElement.compareTo(parentElement) < 0) {
+        E parentElement = Objects.requireNonNull(getElement(parentIndex));
+        if (currentElement.compareTo(parentElement) < 0) {
             // Swap the current element with its parent
             swap(index, parentIndex);
             // Recursively bubble up the parent index
@@ -151,20 +156,20 @@ public class MinHeap<E extends Comparable<E>> {
     /* Bubbles down the element currently at index INDEX. */
     private void bubbleDown(int index) { // TODO: make this iterative
         // DONE: YOUR CODE HERE
-        if (index < 1 || index >= contents.size()) {
+        if (index < 1 || index > size()) {
             return; // Invalid index
         }
+        int smallestIndex = index;
+        E currentElement = Objects.requireNonNull(getElement(index));
         int leftChildIndex = getLeftOf(index);
         int rightChildIndex = getRightOf(index);
-        int smallestIndex = index;
-        E currentElement = getElement(index);
         E leftChildElement = getElement(leftChildIndex);
         E rightChildElement = getElement(rightChildIndex);
         if (leftChildElement != null && currentElement.compareTo(leftChildElement) > 0) {
             smallestIndex = leftChildIndex; // Left child smaller
         }
-        if (rightChildElement != null && getElement(smallestIndex) != null &&
-            getElement(smallestIndex).compareTo(rightChildElement) > 0) {
+        E smallerElement = Objects.requireNonNull(getElement(smallestIndex));
+        if (rightChildElement != null && smallerElement.compareTo(rightChildElement) > 0) {
             smallestIndex = rightChildIndex; // Right child smaller
         }
         if (smallestIndex != index) {
@@ -178,6 +183,7 @@ public class MinHeap<E extends Comparable<E>> {
     /* Returns the number of elements in the MinHeap. */
     public int size() { // TODO: OPTIMIZE THIS TO MAKE IT O(1), using the size field
         // DONE: YOUR CODE HERE
+        // return size;
         if (contents == null || contents.isEmpty()) {
             return 0; // No elements in the heap
         }
@@ -186,15 +192,25 @@ public class MinHeap<E extends Comparable<E>> {
     }
 
     /* Inserts ELEMENT into the MinHeap. If ELEMENT is already in the MinHeap,
-       throw an IllegalArgumentException.*/
+     * throw an IllegalArgumentException.*/
     public void insert(E element) {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        if (element == null) {
+            throw new IllegalArgumentException("Cannot insert null element into MinHeap.");
+        }
+        if (contains(element)) { // TODO: make the implementation handle duplicates
+            throw new IllegalArgumentException("Element already exists in the MinHeap: " + element);
+        }
+        // // contents.add(element); // Add the new element to the end of the list
+        setElement(size() + 1, element); // * done this way to enforce abstraction
+        size++; // Increase the size of the heap
+        bubbleUp(size()); // Bubble up the new element to maintain the heap property
     }
 
     /* Returns and removes the smallest element in the MinHeap, or null if there are none. */
     public E removeMin() {
         // DONE: YOUR CODE HERE
-        if (size < 1) {
+        if (size() < 1) {
             return null; // No elements to remove
         }
         E minElement = findMin(); // The smallest element is at index 1
@@ -202,26 +218,26 @@ public class MinHeap<E extends Comparable<E>> {
             return null; // No valid element to remove
         }
         // Move the last element to the root and bubble down
-        E lastElement = getElement(contents.size() - 1);
+        E lastElement = getElement(size());
         setElement(1, lastElement); // Move the last element to the root
-        contents.remove(contents.size() - 1); // Remove the last element
+        contents.remove(size()); // Remove the last element
         size--; // Decrease the size of the heap
         bubbleDown(1); // Bubble down the new root element
         return minElement;
     }
 
     /* Replaces and updates the position of ELEMENT inside the MinHeap, which
-       may have been mutated since the initial insert. If a copy of ELEMENT does
-       not exist in the MinHeap, throw a NoSuchElementException. Item equality
-       should be checked using .equals(), not ==. */
+     * may have been mutated since the initial insert. If a copy of ELEMENT does
+     * not exist in the MinHeap, throw a NoSuchElementException. Item equality
+     * should be checked using .equals(), not ==. */
     public void update(E element) {
         // TODO: OPTIONAL
     }
 
     /* Returns true if ELEMENT is contained in the MinHeap. Item equality should
-       be checked using .equals(), not ==. */
+     * be checked using .equals(), not ==. */
     public boolean contains(E element) {
-        // OPTIONAL: OPTIMIZE THE SPEED OF THIS TO MAKE IT CONSTANT
+        // TODO: OPTIONAL - OPTIMIZE THE SPEED OF THIS TO MAKE IT CONSTANT
         for (int i = 1; i < contents.size(); i++) {
             if (element.equals(contents.get(i))) {
                 return true;
