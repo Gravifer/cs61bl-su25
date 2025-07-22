@@ -1,8 +1,10 @@
+import java.util.NoSuchElementException;
+
 /* A PriorityQueue class that uses a min heap to maintain ordering. */
 public class MinHeapPQ<T> implements PriorityQueue<T> {
 
     /* The heap backing our MinHeapPQ. */
-    private MinHeap<PriorityItem> heap;
+    private final MinHeap<PriorityItem> heap;
 
     /* Initializes an empty MinHeapPQ. */
     public MinHeapPQ() {
@@ -10,40 +12,74 @@ public class MinHeapPQ<T> implements PriorityQueue<T> {
     }
 
     /* Returns the item with the smallest priority value, but does not remove it
-       from the MinHeapPQ. */
+     * from the MinHeapPQ. */
     public T peek() {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        if (!heap.isEmpty()) {
+            return heap.findMin().item();
+        }
         return null;
     }
 
     /* Inserts ITEM with the priority value PRIORITYVALUE into the MinHeapPQ. If
-       ITEM is already in the MinHeapPQ, throw an IllegalArgumentException. */
+     * ITEM is already in the MinHeapPQ, throw an IllegalArgumentException. */
     public void insert(T item, double priorityValue) {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        if (item == null) {
+            throw new IllegalArgumentException("Item cannot be null");
+        }
+        if (contains(item)) {
+            throw new IllegalArgumentException("Item already exists in the MinHeapPQ");
+        }
+        PriorityItem priorityItem = new PriorityItem(item, priorityValue);
+        heap.insert(priorityItem);
     }
 
     /* Returns the item with the highest priority (smallest priority value), and
-       removes it from the MinHeapPQ. If there is nothing in the queue, return null.*/
+     * removes it from the MinHeapPQ. If there is nothing in the queue, return null.*/
     public T poll() {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        if (!heap.isEmpty()) {
+            PriorityItem minItem = heap.removeMin();
+            return minItem.item();
+        }
         return null;
     }
 
     /* Changes the PriorityItem with item ITEM to have priority value
-       PRIORITYVALUE. Assume the items in the MinHeapPQ are all unique. If ITEM
-       is not in the MinHeapPQ, throw a NoSuchElementException. */
+     * PRIORITYVALUE. Assume the items in the MinHeapPQ are all unique. If ITEM
+     * is not in the MinHeapPQ, throw a NoSuchElementException. */
     public void changePriority(T item, double priorityValue) {
-        // TODO: OPTIONAL
+        // DONE: OPTIONAL
+        if (item == null) {
+            throw new IllegalArgumentException("Item cannot be null");
+        }
+        if (!contains(item)) {
+            throw new NoSuchElementException("Item not found in MinHeapPQ");
+        }
+        // // Find the existing PriorityItem
+        // PriorityItem existingItem = new PriorityItem(item, 0);
+        // int index = heap.indexOf(existingItem);
+        // if (index == -1) {
+        //     throw new NoSuchElementException("Item not found in MinHeapPQ");
+        // }
+        // // ! abstraction forbids modifying the priority value in place
+
+        PriorityItem updatedItem = new PriorityItem(item, priorityValue);
+        heap.update(updatedItem);
     }
 
     /* Returns the number of items in the MinHeapPQ. */
     public int size() {
-        // TODO: YOUR CODE HERE
-        return 0;
+        // DONE: YOUR CODE HERE
+        if (heap == null) {
+            throw new IllegalStateException("Heap is not initialized");
+        }
+        return heap.size();
     }
 
     /* Returns true if ITEM is stored in our MinHeapPQ. Note: Any priority value
-       for this dummy PriorityItem would work. */
+     * for this dummy PriorityItem would work. */
     public boolean contains(T item) {
         return heap.contains(new PriorityItem(item, 0));
     }
@@ -55,10 +91,10 @@ public class MinHeapPQ<T> implements PriorityQueue<T> {
 
     /* A wrapper class that stores items and their associated priorities.
 
-       Note: This class has a natural ordering that is inconsistent with
-       equals. */
+     * Note: This class has a natural ordering that is inconsistent with
+     * equals. */
     public class PriorityItem implements Comparable<PriorityItem> {
-        private T item;
+        private final T item;
         private double priorityValue;
 
         private PriorityItem(T item, double priorityValue) {
@@ -81,7 +117,7 @@ public class MinHeapPQ<T> implements PriorityQueue<T> {
         }
 
         @Override
-        public int compareTo(PriorityItem o) {
+        public int compareTo(PriorityItem o) { // ! compared only by priorityValue
             double diff = this.priorityValue - o.priorityValue;
             if (diff > 0) {
                 return 1;
@@ -93,7 +129,7 @@ public class MinHeapPQ<T> implements PriorityQueue<T> {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(Object o) { // ! compared only by item
             if (o == null) {
                 return false;
             } else if (getClass() == o.getClass()) {

@@ -185,7 +185,7 @@ public class MinHeap<E extends Comparable<E>> {
     }
 
     /* Returns the number of elements in the MinHeap. */
-    public int size() { // TODO: OPTIMIZE THIS TO MAKE IT O(1), using the size field
+    public int size() { // DONE: OPTIMIZE THIS TO MAKE IT O(1), using the size field
         // DONE: YOUR CODE HERE
         return size;
         // if (contents == null || contents.isEmpty()) {
@@ -247,14 +247,14 @@ public class MinHeap<E extends Comparable<E>> {
         if (element == null) {
             throw new IllegalArgumentException("Cannot update null element in MinHeap.");
         }
-        int index = getIndexOf(element);
+        int index = indexOf(element);
         if (index == -1) {
             throw new NoSuchElementException("Element not found in MinHeap: " + element);
         }
         E currentElement = Objects.requireNonNull(getElement(index));
-        if (element.equals(currentElement)) {
-            return;
-        }
+        // if (element.equals(currentElement)) { // ! the element may not have standard equality semantics
+        //     return;
+        // }
         setElement(index, element);
         if (indexMap != null) {
             indexMap.remove(currentElement, index);
@@ -271,10 +271,10 @@ public class MinHeap<E extends Comparable<E>> {
     /* Returns true if ELEMENT is contained in the MinHeap. Item equality should
      * be checked using .equals(), not ==. */
     public boolean contains(E element) {
-        return getIndexOf(element) != -1;
+        return indexOf(element) != -1;
     }
 
-    private int getIndexOf(E element) {
+    int indexOf(E element) {
         // DONE: OPTIONAL - OPTIMIZE THE SPEED OF THIS TO MAKE IT CONSTANT
         // use the indexMap if it exists for faster lookup
         if (indexMap != null) {
@@ -287,5 +287,9 @@ public class MinHeap<E extends Comparable<E>> {
             }
         }
         return -1;
+    }
+
+    public boolean isEmpty() {
+        return size() == 0;
     }
 }
