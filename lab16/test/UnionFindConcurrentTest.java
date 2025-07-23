@@ -75,8 +75,8 @@ public class UnionFindConcurrentTest {
 
     @Test
     public void testHighlyConcurrentOverlappingUnionsAndFinds() throws InterruptedException {
-        final int N = 100_000;
-        final int threads = 100;
+        final int N = 1_000_000;
+        final int threads = 1000;
         final UnionFind uf = new UnionFind(N);
         final CountDownLatch startLatch = new CountDownLatch(1);
         final CountDownLatch doneLatch = new CountDownLatch(threads);
@@ -88,8 +88,8 @@ public class UnionFindConcurrentTest {
             new Thread(() -> {
                 try {
                     startLatch.await();
-                    int start = Math.max(0, tid * (N / threads) - 1000);
-                    int end = Math.min(N, (tid + 1) * (N / threads) + 1000);
+                    int start = Math.max(0, tid * (N / threads) - 10_000);
+                    int end = Math.min(N, (tid + 1) * (N / threads) + 10_000);
                     // Interleaved unions
                     for (int i = start; i < end - 1; i += 2) {
                         uf.union(i, (i + tid) % N);
