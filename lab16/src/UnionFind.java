@@ -59,22 +59,19 @@ public class UnionFind {
         if (v < 0 || v >= N) {
             throw new IllegalArgumentException("Invalid vertex: " + v);
         }
+        int root = v;
+        // Find the root
+        while (data[root] >= 0) {
+            root = data[root];
+        }
+        // Aggressive path compression: set every node on the path directly to root
         int cur = v;
-        while (true) {
+        while (data[cur] >= 0 && data[cur] != root) {
             int parent = data[cur];
-            if (parent < 0) {
-                return cur;
-            }
-            int grandparent = data[parent];
-            if (grandparent < 0) {
-                return parent;
-            }
-            // Path halving: set cur's parent to its grandparent
-            if (data[cur] == parent) {
-                data[cur] = grandparent;
-            }
+            data[cur] = root;
             cur = parent;
         }
+        return root;
     }
 
     public void union(int v1, int v2) {
