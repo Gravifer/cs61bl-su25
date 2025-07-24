@@ -3,7 +3,10 @@ package main;
 import browser.NgordnetServer;
 import demo.DummyHistoryHandler;
 import demo.DummyHistoryTextHandler;
+import ngrams.NGramMap;
 import org.slf4j.LoggerFactory;
+
+import static utils.Utils.*;
 
 public class Main {
     // ngrams files
@@ -30,10 +33,11 @@ public class Main {
     }
     public static void main(String[] args) {
         NgordnetServer hns = new NgordnetServer();
+        NGramMap ngm = new NGramMap(TOP_14337_WORDS_FILE, TOTAL_COUNTS_FILE);
 
         hns.startUp();
-        hns.register("history", new DummyHistoryHandler());
-        hns.register("historytext", new main.HistoryTextHandler());
+        hns.register("history", new main.HistoryHandler(ngm));
+        hns.register("historytext", new main.HistoryTextHandler(ngm));
         hns.register("hyponyms", new HyponymsHandler());
 
         System.out.println("Finished server startup! Visit http://localhost:4567/ngordnet.html");
