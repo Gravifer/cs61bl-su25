@@ -98,6 +98,7 @@ public class Graph implements Iterable<Integer> {
         neighbors.sort((Integer i1, Integer i2) -> -(i1 - i2));
         return neighbors;
     }
+
     /* Returns the number of incoming Edges for vertex V. */
     public int inDegree(int v) {
         // DONE: YOUR CODE HERE
@@ -123,11 +124,11 @@ public class Graph implements Iterable<Integer> {
     }
 
     /**
-     *  A class that iterates through the vertices of this graph,
-     *  starting with a given vertex. Does not necessarily iterate
-     *  through all vertices in the graph: if the iteration starts
-     *  at a vertex v, and there is no path from v to a vertex w,
-     *  then the iteration will not include w.
+     * A class that iterates through the vertices of this graph,
+     * starting with a given vertex. Does not necessarily iterate
+     * through all vertices in the graph: if the iteration starts
+     * at a vertex v, and there is no path from v to a vertex w,
+     * then the iteration will not include w.
      */
     private class DFSIterator implements Iterator<Integer> {
 
@@ -169,7 +170,7 @@ public class Graph implements Iterable<Integer> {
             return curr;
         }
 
-        //ignore this method
+        // ignore this method
         public void remove() {
             throw new UnsupportedOperationException(
                     "vertex removal not implemented");
@@ -199,30 +200,12 @@ public class Graph implements Iterable<Integer> {
         if (start == stop) {
             return true;
         }
-        // Stack<Integer> stack = new Stack<>();
-        // HashSet<Integer> visited = new HashSet<>();
-        // stack.push(start);
-        // while (!stack.isEmpty()) {
-        //     int current = stack.pop();
-        //     if (current == stop) {
-        //         return true;
-        //     }
-        //     if (!visited.contains(current)) {
-        //         visited.add(current);
-        //         for (int neighbor : neighbors(current)) {
-        //             if (!visited.contains(neighbor)) {
-        //                 stack.push(neighbor);
-        //             }
-        //         }
-        //     }
-        // }
         // use DFSIterator to find the path
         if (dfs(start).contains(stop)) {
             return true;
         }
         return false;
     }
-
 
     /* Returns the path from START to STOP. If no path exists, returns an empty
      * List. If START == STOP, returns a List with START. */
@@ -240,28 +223,6 @@ public class Graph implements Iterable<Integer> {
             return path; // return empty list if no path exists
         }
         DFSIterator iter = new DFSIterator(start);
-        // // need to keep track of whether a path attempt is discarded
-        // // you know this happened when stop is not reached but the size of the fringe is reduced
-        // int fringeSize = iter.fringe.size();
-        // boolean pathFound = false;
-        // while (iter.hasNext()) {
-        //     int current = iter.next();
-        //     path.add(current);
-        //     if (current == stop) {
-        //         pathFound = true;
-        //         break;
-        //     }
-        //     // if the size of the fringe is reduced, it means we have to backtrack
-        //     if (iter.fringe.size() < fringeSize) {
-        //         fringeSize = iter.fringe.size();
-        //         path.remove(path.size() - 1); // remove the last element added to the path
-        //     }
-        // }
-        // if (!pathFound) {
-        //     path.clear(); // clear the path if no path was found
-        // } else {
-        //     path.add(stop); // add the stop vertex to the path
-        // }
         // * forget it. We just do backtracking using neighbors()
         while (iter.hasNext()) {
             int next = iter.next();
@@ -295,17 +256,65 @@ public class Graph implements Iterable<Integer> {
 
         TopologicalIterator() {
             fringe = new Stack<Integer>();
-            // TODO: YOUR CODE HERE
+            // DONE: YOUR CODE HERE
+            currentInDegree = new int[vertexCount];
+            for (int i = 0; i < vertexCount; i++) {
+                currentInDegree[i] = directionalInDegree(i);
+                // Initialize fringe with vertices that have in-degree 0
+                // * but also those that have some undirected edges, i.e., for each incoming edge there is also an outgoing edge
+                if (currentInDegree[i] == 0) {
+                    fringe.push(i);
+                }
+            }
+        }
+
+        private int directionalInDegree(int v) {
+            // Returns the in-degree of vertex v, sans undirected edges
+            int count = 0;
+            for (int i = 0; i < vertexCount; i++) {
+                if (isAdjacent(i, v) && !isAdjacent(v, i)) {
+                    count++;
+                }
+            }
+            return count;
         }
 
         public boolean hasNext() {
-            // TODO: YOUR CODE HERE
-            return false;
+            // DONE: YOUR CODE HERE
+            return !fringe.isEmpty();
         }
 
         public Integer next() {
-            // TODO: YOUR CODE HERE
-            return 0;
+            // DONE: YOUR CODE HERE
+            int curr = fringe.pop();
+            ArrayList<Integer> lst = new ArrayList<>();
+            for (int i : neighbors(curr)) {
+                // If there is a reverse edge (i->curr), treat as undirected and ignore for topological sort
+                boolean isUndirected = false;
+                for (int rev : neighbors(i)) {
+                    if (rev == curr) {
+                        isUndirected = true;
+                        break;
+                    }
+                }
+                if (isUndirected) {
+                    continue; // skip decrementing in-degree for undirected edge
+                }
+                if (currentInDegree[i] < 0) {
+                    throw new IllegalStateException("In-degree cannot be negative. Cycles suspected.");
+                }
+                if (currentInDegree[i] > 0) {
+                    currentInDegree[i]--; // Decrease in-degree for neighbors
+                }
+                if (currentInDegree[i] == 0) {
+                    lst.add(i);
+                }
+            }
+            lst.sort((Integer i1, Integer i2) -> -(i1 - i2));
+            for (Integer e : lst) {
+                fringe.push(e);
+            }
+            return curr;
         }
 
         public void remove() {
