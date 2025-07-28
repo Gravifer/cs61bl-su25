@@ -332,7 +332,7 @@ public class Graph implements Iterable<Integer> {
 
     }
 
-    private void generateG1() {
+    void generateG1() {
         addEdge(0, 1);
         addEdge(0, 2);
         addEdge(0, 4);
@@ -342,7 +342,7 @@ public class Graph implements Iterable<Integer> {
         addEdge(4, 3);
     }
 
-    private void generateG2() {
+    void generateG2() {
         addEdge(0, 1);
         addEdge(0, 2);
         addEdge(0, 4);
@@ -351,7 +351,7 @@ public class Graph implements Iterable<Integer> {
         addEdge(4, 3);
     }
 
-    private void generateG3() {
+    void generateG3() {
         addUndirectedEdge(0, 2);
         addUndirectedEdge(0, 3);
         addUndirectedEdge(1, 4);
@@ -361,7 +361,7 @@ public class Graph implements Iterable<Integer> {
         addUndirectedEdge(4, 5);
     }
 
-    private void generateG4() {
+    void generateG4() {
         addEdge(0, 1);
         addEdge(1, 2);
         addEdge(2, 0);

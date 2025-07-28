@@ -15,8 +15,8 @@ public class TestGraph {
         List<Integer> path1 = g.path(0, 1);
         List<Integer> path2 = g.path(1, 0);
 
-        assertWithMessage("Expected size 0 path between 2 vertices, no edges.").that(path1.size() == 0);
-        assertWithMessage("Expected size 0 path between 2 vertices, no edges.").that(path2.size() == 0);
+        assertWithMessage("Expected size 0 path between 2 vertices, no edges.").that(path1.isEmpty()).isTrue();
+        assertWithMessage("Expected size 0 path between 2 vertices, no edges.").that(path2.isEmpty()).isTrue();
     }
 
     // DONE: add more tests!
@@ -62,6 +62,119 @@ public class TestGraph {
         assertThat(g.inDegree(1)).isEqualTo(3);
         assertThat(g.inDegree(2)).isEqualTo(1);
         assertThat(g.inDegree(0)).isEqualTo(0);
+    }
+
+    @Test
+    public void testPathExistsBasic() {
+        Graph g = new Graph(3);
+        g.addEdge(0, 1, 1);
+        g.addEdge(1, 2, 1);
+        assertThat(g.pathExists(0, 2)).isTrue();
+        assertThat(g.pathExists(0, 1)).isTrue();
+        assertThat(g.pathExists(1, 0)).isFalse();
+        assertThat(g.pathExists(2, 0)).isFalse();
+        assertThat(g.pathExists(2, 2)).isTrue(); // self path
+    }
+
+    @Test
+    public void testPathExistsDisconnected() {
+        Graph g = new Graph(4);
+        g.addEdge(0, 1, 1);
+        g.addEdge(2, 3, 1);
+        assertThat(g.pathExists(0, 3)).isFalse();
+        assertThat(g.pathExists(2, 1)).isFalse();
+        assertThat(g.pathExists(2, 3)).isTrue();
+    }
+
+    @Test
+    public void testPathBasic() {
+        Graph g = new Graph(3);
+        g.addEdge(0, 1, 1);
+        g.addEdge(1, 2, 1);
+        List<Integer> path = g.path(0, 2);
+        assertThat(path).containsExactly(0, 1, 2).inOrder();
+        assertThat(g.path(2, 0)).isEmpty();
+        assertThat(g.path(0, 0)).containsExactly(0);
+    }
+
+    @Test
+    public void testPathDisconnected() {
+        Graph g = new Graph(4);
+        g.addEdge(0, 1, 1);
+        g.addEdge(2, 3, 1);
+        assertThat(g.path(0, 3)).isEmpty();
+        assertThat(g.path(2, 1)).isEmpty();
+        assertThat(g.path(2, 3)).containsExactly(2, 3).inOrder();
+    }
+
+    @Test
+    public void testPathCycle() {
+        Graph g = new Graph(3);
+        g.addEdge(0, 1, 1);
+        g.addEdge(1, 2, 1);
+        g.addEdge(2, 0, 1);
+        List<Integer> path = g.path(0, 2);
+        assertThat(path.getFirst()).isEqualTo(0);
+        assertThat(path.getLast()).isEqualTo(2);
+        assertThat(g.path(2, 1)).contains(2);
+    }
+
+    @Test
+    public void testPathWithGenerateG1() {
+        Graph g = new Graph(5);
+        g.generateG1();
+        // Path from 0 to 3: 0->2->3 or 0->4->3
+        List<Integer> path1 = g.path(0, 3);
+        assertThat(path1.getFirst()).isEqualTo(0);
+        assertThat(path1.getLast()).isEqualTo(3);
+        assertThat(g.pathExists(0, 3)).isTrue();
+        // Path from 4 to 0: no path
+        assertThat(g.path(4, 0)).isEmpty();
+        assertThat(g.pathExists(4, 0)).isFalse();
+    }
+
+    @Test
+    public void testPathWithGenerateG2() {
+        Graph g = new Graph(5);
+        g.generateG2();
+        // Path from 0 to 3: 0->2->3 or 0->4->3
+        List<Integer> path1 = g.path(0, 3);
+        assertThat(path1.getFirst()).isEqualTo(0);
+        assertThat(path1.getLast()).isEqualTo(3);
+        assertThat(g.pathExists(0, 3)).isTrue();
+        // Path from 3 to 0: no path
+        assertThat(g.path(3, 0)).isEmpty();
+        assertThat(g.pathExists(3, 0)).isFalse();
+    }
+
+    @Test
+    public void testPathWithGenerateG3() {
+        Graph g = new Graph(7);
+        g.generateG3();
+        assertThat(g.pathExists(0, 6)).isTrue();
+        List<Integer> path = g.path(0, 6);
+        assertThat(path.getFirst()).isEqualTo(0);
+        assertThat(path.getLast()).isEqualTo(6);
+        // Path from 0 to 3
+        List<Integer> path2 = g.path(0, 3);
+        assertThat(path2.getFirst()).isEqualTo(0);
+        assertThat(path2.getLast()).isEqualTo(3);
+    }
+
+    @Test
+    public void testPathWithGenerateG4() {
+        Graph g = new Graph(5);
+        g.generateG4();
+        // There is a cycle: 0->1->2->0
+        assertThat(g.pathExists(0, 2)).isTrue();
+        List<Integer> path = g.path(0, 2);
+        assertThat(path.getFirst()).isEqualTo(0);
+        assertThat(path.getLast()).isEqualTo(2);
+        // 4->2 exists
+        assertThat(g.pathExists(4, 2)).isTrue();
+        // 3->0 does not exist
+        assertThat(g.pathExists(3, 0)).isFalse();
+        assertThat(g.path(3, 0)).isEmpty();
     }
 
 }
