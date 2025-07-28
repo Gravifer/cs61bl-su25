@@ -1,3 +1,5 @@
+import edu.princeton.cs.algs4.Edge;
+
 import java.util.LinkedList;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,52 +22,102 @@ public class Graph implements Iterable<Integer> {
     }
 
     /* Adds a directed Edge (V1, V2) to the graph. That is, adds an edge
-       in ONE directions, from v1 to v2. */
+     * in ONE directions, from v1 to v2. */
     public void addEdge(int v1, int v2) {
         addEdge(v1, v2, 0);
     }
 
     /* Adds a directed Edge (V1, V2) to the graph with weight WEIGHT. If the
-       Edge already exists, replaces the current Edge with a new Edge with
-       weight WEIGHT. */
+     * Edge already exists, replaces the current Edge with a new Edge with
+     * weight WEIGHT. */
     public void addEdge(int v1, int v2, int weight) {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        if (v1 < 0 || v1 >= vertexCount || v2 < 0 || v2 >= vertexCount) {
+            throw new IllegalArgumentException("Vertex out of bounds");
+        }
+        LinkedList<Edge> edges = adjLists[v1];
+        for (Edge edge : edges) {
+            if (edge.to == v2) {
+                // Edge already exists, replace it
+                edges.remove(edge);
+                edges.add(new Edge(v1, v2, weight));
+                return;
+            }
+        }
+        // Edge does not exist, add a new one
+        edges.add(new Edge(v1, v2, weight));
     }
 
     /* Adds an undirected Edge (V1, V2) to the graph. That is, adds an edge
-       in BOTH directions, from v1 to v2 and from v2 to v1. */
+     * in BOTH directions, from v1 to v2 and from v2 to v1. */
     public void addUndirectedEdge(int v1, int v2) {
         addUndirectedEdge(v1, v2, 0);
     }
 
     /* Adds an undirected Edge (V1, V2) to the graph with weight WEIGHT. If the
-       Edge already exists, replaces the current Edge with a new Edge with
-       weight WEIGHT. */
+     * Edge already exists, replaces the current Edge with a new Edge with
+     * weight WEIGHT. */
     public void addUndirectedEdge(int v1, int v2, int weight) {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        if (v1 < 0 || v1 >= vertexCount || v2 < 0 || v2 >= vertexCount) {
+            throw new IllegalArgumentException("Vertex out of bounds");
+        }
+        // * using a loop of directed edges to represent an undirected edge is a bad idea, but hey, what can you do
+        addEdge(v1, v2, weight);
+        addEdge(v2, v1, weight);
     }
 
     /* Returns true if there exists an Edge from vertex FROM to vertex TO.
-       Returns false otherwise. */
+     * Returns false otherwise. */
     public boolean isAdjacent(int from, int to) {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        if (from < 0 || from >= vertexCount || to < 0 || to >= vertexCount) {
+            throw new IllegalArgumentException("Vertex out of bounds");
+        }
+        LinkedList<Edge> edges = adjLists[from];
+        for (Edge edge : edges) {
+            if (edge.to == to) {
+                return true;
+            }
+        }
         return false;
     }
 
     /* Returns a list of all the vertices u such that the Edge (V, u)
-       exists in the graph. */
+     * exists in the graph. */
     public List<Integer> neighbors(int v) {
-        // TODO: YOUR CODE HERE
-        return null;
+        // DONE: YOUR CODE HERE
+        if (v < 0 || v >= vertexCount) {
+            throw new IllegalArgumentException("Vertex out of bounds");
+        }
+        LinkedList<Edge> edges = adjLists[v];
+        ArrayList<Integer> neighbors = new ArrayList<>();
+        for (Edge edge : edges) {
+            neighbors.add(edge.to);
+        }
+        neighbors.sort((Integer i1, Integer i2) -> -(i1 - i2));
+        return neighbors;
     }
     /* Returns the number of incoming Edges for vertex V. */
     public int inDegree(int v) {
-        // TODO: YOUR CODE HERE
-        return 0;
+        // DONE: YOUR CODE HERE
+        if (v < 0 || v >= vertexCount) {
+            throw new IllegalArgumentException("Vertex out of bounds");
+        }
+        int count = 0;
+        for (int i = 0; i < vertexCount; i++) { // ! dumb as f
+            LinkedList<Edge> edges = adjLists[i];
+            for (Edge edge : edges) {
+                if (edge.to == v) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     /* Returns an Iterator that outputs the vertices of the graph in topological
-       sorted order. */
+     * sorted order. */
     public Iterator<Integer> iterator() {
         return new TopologicalIterator();
     }
@@ -126,9 +178,9 @@ public class Graph implements Iterable<Integer> {
     }
 
     /* Returns the collected result of performing a depth-first search on this
-       graph's vertices starting from V. */
+     * graph's vertices starting from V. */
     public List<Integer> dfs(int v) {
-        ArrayList<Integer> result = new ArrayList<Integer>();
+        ArrayList<Integer> result = new ArrayList<Integer>(); // * just repeats what's in iter.visited except ordered
         Iterator<Integer> iter = new DFSIterator(v);
 
         while (iter.hasNext()) {
@@ -138,18 +190,92 @@ public class Graph implements Iterable<Integer> {
     }
 
     /* Returns true iff there exists a path from START to STOP. Assumes both
-       START and STOP are in this graph. If START == STOP, returns true. */
+     * START and STOP are in this graph. If START == STOP, returns true. */
     public boolean pathExists(int start, int stop) {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        if (start < 0 || start >= vertexCount || stop < 0 || stop >= vertexCount) {
+            throw new IllegalArgumentException("Vertex out of bounds");
+        }
+        if (start == stop) {
+            return true;
+        }
+        // Stack<Integer> stack = new Stack<>();
+        // HashSet<Integer> visited = new HashSet<>();
+        // stack.push(start);
+        // while (!stack.isEmpty()) {
+        //     int current = stack.pop();
+        //     if (current == stop) {
+        //         return true;
+        //     }
+        //     if (!visited.contains(current)) {
+        //         visited.add(current);
+        //         for (int neighbor : neighbors(current)) {
+        //             if (!visited.contains(neighbor)) {
+        //                 stack.push(neighbor);
+        //             }
+        //         }
+        //     }
+        // }
+        // use DFSIterator to find the path
+        if (dfs(start).contains(stop)) {
+            return true;
+        }
         return false;
     }
 
 
     /* Returns the path from START to STOP. If no path exists, returns an empty
-       List. If START == STOP, returns a List with START. */
+     * List. If START == STOP, returns a List with START. */
     public List<Integer> path(int start, int stop) {
-        // TODO: YOUR CODE HERE
-        return null;
+        // DONE: YOUR CODE HERE
+        if (start < 0 || start >= vertexCount || stop < 0 || stop >= vertexCount) {
+            throw new IllegalArgumentException("Vertex out of bounds");
+        }
+        ArrayList<Integer> path = new ArrayList<>();
+        if (start == stop) {
+            path.add(start);
+            return path;
+        }
+        if (!pathExists(start, stop)) {
+            return path; // return empty list if no path exists
+        }
+        DFSIterator iter = new DFSIterator(start);
+        // // need to keep track of whether a path attempt is discarded
+        // // you know this happened when stop is not reached but the size of the fringe is reduced
+        // int fringeSize = iter.fringe.size();
+        // boolean pathFound = false;
+        // while (iter.hasNext()) {
+        //     int current = iter.next();
+        //     path.add(current);
+        //     if (current == stop) {
+        //         pathFound = true;
+        //         break;
+        //     }
+        //     // if the size of the fringe is reduced, it means we have to backtrack
+        //     if (iter.fringe.size() < fringeSize) {
+        //         fringeSize = iter.fringe.size();
+        //         path.remove(path.size() - 1); // remove the last element added to the path
+        //     }
+        // }
+        // if (!pathFound) {
+        //     path.clear(); // clear the path if no path was found
+        // } else {
+        //     path.add(stop); // add the stop vertex to the path
+        // }
+        // * forget it. We just do backtracking using neighbors()
+        while (iter.hasNext()) {
+            int next = iter.next();
+            // * if next cannot be reached from the last element of path, it means backtracking happened
+            if (!path.isEmpty() && !isAdjacent(path.getLast(), next)) {
+                path.removeLast(); // clear the path if backtracking happened
+            }
+            path.add(next);
+            if (next == stop) {
+                return path; // return the path if stop is reached            }
+            }
+        }
+        path.clear();
+        return path;
     }
 
     public List<Integer> topologicalSort() {
