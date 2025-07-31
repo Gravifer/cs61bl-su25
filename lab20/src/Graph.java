@@ -1,3 +1,5 @@
+import edu.princeton.cs.algs4.WeightedQuickUnionUF;
+
 import java.util.*;
 
 /* A mutable and finite Graph object. Edge labels are stored via a HashMap
@@ -167,12 +169,32 @@ public class Graph {
                 mst.addEdge(e);
             }
         }
+        // Check if the MST spans all vertices
+        if (!mst.spans(this)) {
+            return null;
+            // throw new IllegalStateException("MST does not span the graph.");
+        }
         return mst;
     }
 
     public Graph kruskals() {
-        // TODO: YOUR CODE HERE
-        return null;
+        // DONE: YOUR CODE HERE
+        var uf = new WeightedQuickUnionUF(getAllVertices().size());
+        Graph mst = new Graph();
+        for (Edge edge : getAllEdges()) {
+            int root1 = uf.find(edge.getSource());
+            int root2 = uf.find(edge.getDest());
+            if (root1 != root2) {
+                uf.union(root1, root2);
+                mst.addEdge(edge);
+            }
+        }
+        // Check if the MST spans all vertices
+        if (!mst.spans(this)) {
+            // throw new IllegalStateException("MST does not span the graph.");
+            return null;
+        }
+        return mst;
     }
 
     /* A comparator to help you compare vertices in terms of
