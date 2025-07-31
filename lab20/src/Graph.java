@@ -120,7 +120,54 @@ public class Graph {
 
     public Graph prims(int start) {
         // TODO: YOUR CODE HERE
-        return null;
+        if (!containsVertex(start)) {
+            throw new IllegalArgumentException("Start vertex not in graph.");
+        }
+        Graph mst = new Graph();
+        Set<Integer> visited = new HashSet<>();
+        PrimVertexComparator pvc = new PrimVertexComparator(new HashMap<>());
+        var distFromTree = pvc.distFromTree;
+        PriorityQueue<Integer> pq = new PriorityQueue<>(pvc);
+        for (Integer v : getAllVertices()) {
+            if (v == start) {
+                distFromTree.put(v, new Edge(-1, v, 0)); // Start vertex has no incoming edge
+            } else {
+                distFromTree.put(v, new Edge(-1, v, Integer.MAX_VALUE)); // Initialize with max weight
+            }
+            pq.add(v);
+        }
+        while (!pq.isEmpty()) {
+            Integer current = pq.poll();
+            if (visited.contains(current)) {
+                continue; // Skip if already visited
+            }
+            visited.add(current);
+            mst.addVertex(current);
+            Edge edgeToAdd = distFromTree.get(current);
+            if (edgeToAdd.getSource() != -1) { // Not the start vertex
+                mst.addEdge(edgeToAdd);
+            }
+
+            for (Integer neighbor : getNeighbors(current)) {
+                if (!visited.contains(neighbor)) {
+                    Edge edge = new Edge(current, neighbor, getEdges(current).stream()
+                            .filter(e -> e.getDest() == neighbor || e.getSource() == neighbor)
+                            .findFirst().orElseThrow().getWeight());
+                    if (edge.getWeight() < distFromTree.get(neighbor).getWeight()) {
+                        distFromTree.put(neighbor, edge);
+                        pq.remove(neighbor); // Remove to update priority queue
+                        pq.add(neighbor); // Re-add with updated weight
+                    }
+                }
+            }
+        }
+        // Add edges to the MST
+        for (Edge e : distFromTree.values()) {
+            if (e.getSource() != -1 && e.getWeight() < Integer.MAX_VALUE) {
+                mst.addEdge(e);
+            }
+        }
+        return mst;
     }
 
     public Graph kruskals() {
@@ -133,20 +180,20 @@ public class Graph {
      * Feel free to uncomment the below code if you'd like to use it;
      * otherwise, you may implement your own comparator.
      */
-//    private class PrimVertexComparator implements Comparator<Integer> {
-//        private HashMap<Integer, Edge> distFromTree;
-//
-//        public PrimVertexComparator(HashMap<Integer, Edge> distFromTree) {
-//            this.distFromTree = distFromTree;
-//        }
-//
-//        @Override
-//        public int compare(Integer o1, Integer o2) {
-//            int edgeCompRes = distFromTree.get(o1).compareTo(distFromTree.get(o2));
-//            if (edgeCompRes == 0) {
-//                return o1 - o2;
-//            }
-//            return edgeCompRes;
-//        }
-//    }
+    private class PrimVertexComparator implements Comparator<Integer> {
+        private HashMap<Integer, Edge> distFromTree;
+
+        public PrimVertexComparator(HashMap<Integer, Edge> distFromTree) {
+            this.distFromTree = distFromTree;
+        }
+
+        @Override
+        public int compare(Integer o1, Integer o2) {
+            int edgeCompRes = distFromTree.get(o1).compareTo(distFromTree.get(o2));
+            if (edgeCompRes == 0) {
+                return o1 - o2;
+            }
+            return edgeCompRes;
+        }
+    }
 }

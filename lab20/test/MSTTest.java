@@ -35,6 +35,16 @@ public class MSTTest {
     @Test
     public void test1() {
         // TODO: write more tests!
+        Graph input = loadFromText(NORMAL);
+        Graph output = new Graph();
+        output.addEdge(0, 2, 1);
+        output.addEdge(1, 2, 2);
+        output.addEdge(2, 3, 6);
+
+        Graph mst1 = input.prims(0);
+        // Graph mst2 = input.kruskals();
+        assertThat(mst1).isEqualTo(output);
+        // assertThat(mst2).isEqualTo(output);
     }
 
     /* Returns a randomly generated graph with VERTICES number of vertices and
@@ -80,4 +90,3 @@ public class MSTTest {
         }
     }
 }
-
