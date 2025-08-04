@@ -18,7 +18,7 @@ import java.util.Random;
 public class TimingTests {
 
     /* The upper and lower bounds of the range of array sizes to test. */
-    // TODO: You may want to change these values if the tests are taking too long.
+    // * NOTE: You may want to change these values if the tests are taking too long.
     static final int UPPER_BOUND = 200000;
     static final int LOWER_BOUND = 20000;
     static final int STEP_SIZE = 20000;
@@ -30,7 +30,7 @@ public class TimingTests {
         List<XYChart> charts = new ArrayList<>();
 
         /* Run the timing tests and store the results. */
-        // TODO: You can comment out the tests you don't want to run.
+        // * NOTE: You can comment out the tests you don't want to run.
         charts.add(timeHeapSort());
         charts.add(timeMergeSort());
         charts.add(timeInsertionSort());
@@ -38,7 +38,35 @@ public class TimingTests {
         charts.add(timeQuickSort());
 
         /* Display the charts in a window. */
-        new SwingWrapper<>(charts).displayChartMatrix();
+        var sw = new SwingWrapper<>(charts);
+        sw.displayChartMatrix();
+        // 保存所有图表为一个网格到单个PNG文件
+        try {
+            // 计算网格行列（近似为正方形）
+            int chartCount = charts.size();
+            int cols = (int) Math.ceil(Math.sqrt(chartCount));
+            int rows = (int) Math.ceil((double) chartCount / cols);
+            int chartWidth = 600;
+            int chartHeight = 400;
+            java.awt.image.BufferedImage combined = new java.awt.image.BufferedImage(
+                    cols * chartWidth, rows * chartHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            java.awt.Graphics2D g = combined.createGraphics();
+            for (int i = 0; i < chartCount; i++) {
+                int r = i / cols;
+                int c = i % cols;
+                // 使用BitmapEncoder.getBufferedImage获取图像
+                java.awt.image.BufferedImage chartImg = org.knowm.xchart.BitmapEncoder.getBufferedImage(charts.get(i));
+                // 缩放到目标尺寸
+                java.awt.Image scaled = chartImg.getScaledInstance(chartWidth, chartHeight, java.awt.Image.SCALE_SMOOTH);
+                g.drawImage(scaled, c * chartWidth, r * chartHeight, null);
+            }
+            g.dispose();
+            javax.imageio.ImageIO.write(combined, "png", new java.io.File("all_charts_grid.png"));
+            System.out.println("All charts saved.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
 
