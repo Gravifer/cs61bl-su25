@@ -16,7 +16,13 @@ public class HeapSort {
      * Read through it carefully and try to understand how it works.
      */
     public static void sort(int[] arr) {
-        // TODO: Implement heap sort
+        // DONE: Implement heap sort
+        int n = arr.length;
+        heapify(arr);
+        for (int i = n - 1; i > 0; i--) {
+            swap(arr, 0, i); // Swap the root of the heap with the last element
+            bubbleDown(arr, 0, i); // Bubble down the new root in the unsorted part of the array
+        }
     }
 
     /**
@@ -28,7 +34,12 @@ public class HeapSort {
      * Suggested helper method that will make it easier for you to implement heap sort.
      */
     private static void heapify(int[] arr) {
-        // TODO: Implement heapify
+        // DONE: Implement heapify
+        int n = arr.length;
+        // bottom-up heapification
+        for (int i = n / 2 - 1; i >= 0; i--) {
+            bubbleDown(arr, i, n);
+        }
     }
 
 
@@ -108,4 +119,3 @@ public class HeapSort {
 
 
 }
-
