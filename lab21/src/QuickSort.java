@@ -21,8 +21,15 @@ public class QuickSort {
      * Helper method for sort: runs quicksort algorithm on array from [start:end)
      */
     private static void quickSort(int[] arr, int start, int end) {
-        // TODO: Implement quicksort
-        
+        // DONE: Implement quicksort
+        if (start < end - 1) {
+            int[] partitionIndices = partition(arr, start, end);
+            int lEnd = partitionIndices[0];
+            int gStart = partitionIndices[1];
+
+            quickSort(arr, start, lEnd);
+            quickSort(arr, gStart, end);
+        }
     }
 
     /**
@@ -39,7 +46,38 @@ public class QuickSort {
      * Most of the code for quicksort is in this function
      */
     private static int[] partition(int[] arr, int start, int end) {
-        // TODO: Implement partition
-        return null;
+        // DONE: Implement partition
+        int pivot = arr[start];
+        int lEnd = start; // one over the end index of "less than", therefore always pointing to the pivot
+        int gStart = end; // start index of "greater than"
+
+        // 3-way qsort
+        for (int i = start; i < gStart; i++) {
+            if (arr[i] < pivot) {
+                swap(arr, lEnd, i);
+                lEnd++;
+            } else if (arr[i] > pivot) {
+                gStart--;
+                swap(arr, i, gStart);
+                i--; // stay at the same index after swapping
+            }
+        }
+
+        return new int[]{lEnd, gStart};
+    }
+
+
+    /**
+     * @param arr
+     * @param i
+     * @param j
+     *
+     * Swap the elements at indices i and j in the array arr.
+     * A helper method you can use in your implementation of sort.
+     */
+    private static void swap(int[] arr, int i, int j) {
+        int temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
     }
 }   
