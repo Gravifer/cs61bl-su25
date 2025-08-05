@@ -1,11 +1,25 @@
+import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Queue;
 
 public class DistributionSorts {
 
     /* Destructively sorts ARR using counting sort. Assumes that ARR contains
        only 0, 1, ..., 9. */
     public static void countingSort(int[] arr) {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        int[] count = new int[10];
+        for (int num : arr) {
+            count[num]++;
+        }
+        int index = 0;
+        for (int i = 0; i < count.length; i++) {
+            while (count[i] > 0) {
+                arr[index] = i;
+                index++;
+                count[i]--;
+            }
+        }
     }
 
     /* Destructively sorts ARR using LSD radix sort. */
@@ -20,7 +34,24 @@ public class DistributionSorts {
        DIGIT-th digit. When DIGIT is equal to 0, sort the numbers by the
        rightmost digit of each number. */
     private static void countingSortOnDigit(int[] arr, int digit) {
-        // TODO: YOUR CODE HERE
+        // DONE: YOUR CODE HERE
+        Queue<Integer>[] buckets = new Queue[10];
+        for (int i = 0; i < buckets.length; i++) {
+            buckets[i] = new ArrayDeque<>();
+        }
+        for (int num : arr) {
+            int d = getDigit(num, digit);
+            buckets[d].add(num);
+        }
+        int index = 0;
+        for (Queue<Integer> bucket : buckets) {
+            if (bucket != null) {
+                while (!bucket.isEmpty()) {
+                    arr[index] = bucket.poll();
+                    index++;
+                }
+            }
+        }
     }
 
     /* Returns the largest number of digits that any integer in ARR has. */
