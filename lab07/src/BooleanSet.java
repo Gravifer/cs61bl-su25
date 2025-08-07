@@ -4,25 +4,38 @@
  */
 public class BooleanSet implements SimpleSet {
 
-    private boolean[] contains;
-    private int size;
+    private final boolean[] contains;
+    private int size, maxElement;
 
     /** Initializes a set of ints from 0 to maxElement. */
     public BooleanSet(int maxElement) {
         contains = new boolean[maxElement + 1];
         size = 0;
+        this.maxElement = maxElement;
     }
 
     /** Adds k to the set. */
     @Override
     public void add(int k) {
-        // TODO: Implement this method.
+        if (k < 0 || k > maxElement) {
+            throw new IllegalArgumentException("Element out of bounds: " + k);
+        }
+        if (!contains[k]) {
+            contains[k] = true;
+            size++;
+        }
     }
 
     /** Removes k from the set. */
     @Override
     public void remove(int k) {
-        // TODO: Implement this method.
+        if (k < 0 || k > maxElement) {
+            throw new IllegalArgumentException("Element out of bounds: " + k);
+        }
+        if (contains[k]) {
+            contains[k] = false;
+            size--;
+        }
     }
 
     /** Return true if k is in this set, false otherwise. */
@@ -41,14 +54,19 @@ public class BooleanSet implements SimpleSet {
     /** Returns the number of items in the set. */
     @Override
     public int size() {
-        // TODO: Implement this method.
-        return 0;
+        return size;
     }
 
     /** Returns an array containing all of the elements in this collection. */
     @Override
     public int[] toIntArray() {
-        // TODO: Implement this method.
-        return null;
+        int[] result = new int[size];
+        int index = 0;
+        for (int i = 0; i <= maxElement; i++) {
+            if (contains[i]) {
+                result[index++] = i;
+            }
+        }
+        return result;
     }
 }

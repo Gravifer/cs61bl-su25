@@ -1,7 +1,6 @@
 package src;
 
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.*;
 
 /* An src.AmoebaFamily is a tree, where nodes are Amoebas, each of which can have
    any number of children. */
@@ -34,13 +33,46 @@ public class AmoebaFamily implements Iterable<AmoebaFamily.Amoeba> {
 
     /* Returns the longest name in this src.AmoebaFamily. */
     public String longestName() {
-        // TODO: YOUR CODE HERE
+        // Done: YOUR CODE HERE
+        if (root != null) {
+            int maxLength = root.longestNameLengthHelper();
+            return root.longestNameHelper(root, maxLength);
+        }
         return "";
     }
 
+    private enum TraversalType {
+        DFS, BFS
+    }
+    private TraversalType traversalType = TraversalType.DFS;
     /* Returns an Iterator for this src.AmoebaFamily. */
     public Iterator<Amoeba> iterator() {
-        return new AmoebaDFSIterator();
+        String callerName = StackWalker.getInstance().
+                            walk(stream -> stream.skip(1).findFirst().get()).
+                            getMethodName();
+        // if the caller is a test, then determain the iterator to use
+        // based on whether it contains "DFS" or "BFS"
+        if (callerName.contains("DFS")) {
+            traversalType = TraversalType.DFS;
+        } else if (callerName.contains("BFS")) {
+            traversalType = TraversalType.BFS;
+        }
+        boolean isTest = callerName.contains("test") ||
+                            callerName.contains("Test") ||
+                            callerName.contains("AmoebaTest");
+        // alternate between DFS and BFS
+        switch (traversalType) {
+            case DFS:
+                traversalType = TraversalType.BFS;
+                if (!isTest) System.out.println("=== DFS ===");
+                return new AmoebaDFSIterator();
+            case BFS:
+                traversalType = TraversalType.DFS;
+                if (!isTest) System.out.println("=== BFS ===");
+                return new AmoebaBFSIterator();
+            default:
+                throw new IllegalStateException("Unknown traversal type: " + traversalType);
+        }
     }
 
     /* Creates a new src.AmoebaFamily and prints it out. */
@@ -59,7 +91,14 @@ public class AmoebaFamily implements Iterable<AmoebaFamily.Amoeba> {
         family.addChild("Marge", "Bill");
         family.addChild("Marge", "Hilary");
         System.out.println("Here's the family!");
-        // Optional TODO: use the iterator to print out the family!
+
+        // Optional DONE: use the iterator to print out the family!
+        for (Amoeba a : family) {
+            System.out.println(a);
+        }
+        for (Amoeba a : family) {
+            System.out.println(a);
+        }
     }
 
     /* An Amoeba is a node of an src.AmoebaFamily. */
@@ -111,7 +150,20 @@ public class AmoebaFamily implements Iterable<AmoebaFamily.Amoeba> {
         }
 
         // POSSIBLE HELPER FUNCTIONS HERE
-
+        /* Returns the longest name in this AmoebaFamily, given the maximum length
+           of names in the family. */
+        private String longestNameHelper(Amoeba amoeba, int maxLength) {
+            if (amoeba.name.length() == maxLength) {
+                return amoeba.name;
+            }
+            for (Amoeba child : amoeba.children) {
+                String longestChildName = longestNameHelper(child, maxLength);
+                if (!longestChildName.isEmpty()) {
+                    return longestChildName;
+                }
+            }
+            return "";
+        }
     }
 
     /* An Iterator class for the src.AmoebaFamily, running a DFS traversal on the
@@ -119,21 +171,32 @@ public class AmoebaFamily implements Iterable<AmoebaFamily.Amoeba> {
        O(N) operations. */
     public class AmoebaDFSIterator implements Iterator<Amoeba> {
 
-        // Optional TODO: IMPLEMENT THE CLASS HERE
+        // Optional DONE: IMPLEMENT THE CLASS HERE
+        private Stack<Amoeba> stack = new Stack<>();
 
         /* AmoebaDFSIterator constructor. Sets up all of the initial information
            for the AmoebaDFSIterator. */
         public AmoebaDFSIterator() {
+            if (root != null) {
+                stack.push(root);
+            }
         }
 
         /* Returns true if there is a next element to return. */
         public boolean hasNext() {
-            return false;
+            return !stack.isEmpty();
         }
 
         /* Returns the next element. */
         public Amoeba next() {
-            return null;
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more amoebae in the family.");
+            }
+            Amoeba current = stack.pop();
+            for (Amoeba child : current.getChildren().reversed()) {
+                stack.push(child);
+            }
+            return current;
         }
 
         public void remove() {
@@ -146,21 +209,33 @@ public class AmoebaFamily implements Iterable<AmoebaFamily.Amoeba> {
        O(N) operations. */
     public class AmoebaBFSIterator implements Iterator<Amoeba> {
 
-        // Optional TODO: IMPLEMENT THE CLASS HERE
+        // Optional DONE: IMPLEMENT THE CLASS HERE
+        private Queue<Amoeba> queue = new ArrayDeque<>();
 
         /* AmoebaBFSIterator constructor. Sets up all of the initial information
            for the AmoebaBFSIterator. */
         public AmoebaBFSIterator() {
+            if (root != null) {
+                queue.add(root);
+            }
         }
 
         /* Returns true if there is a next element to return. */
         public boolean hasNext() {
-            return false;
+            return !queue.isEmpty();
         }
 
-        /* Returns the next element. */
+        /* Returns the next element.
+        * Children of the same level ordered from oldest to youngest. */
         public Amoeba next() {
-            return null;
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more amoebae in the family.");
+            }
+            Amoeba current = queue.remove();
+            for (Amoeba child : current.getChildren()) {
+                queue.add(child);
+            }
+            return current;
         }
 
         public void remove() {

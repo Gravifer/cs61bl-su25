@@ -1,0 +1,12 @@
+[submodule "lecture-code-su25"]
+	path = lecture-code-su25
+	url = https://github.com/cs61bl/lecture-code-su25
+[submodule "lecture-code-sp21"]
+	path = lecture-code-sp21
+	url = https://github.com/Berkeley-CS61B/lectureCode-sp21
+[submodule "lecture-code-sp25"]
+	path = lecture-code-sp25
+	url = https://github.com/Berkeley-CS61B/lectureCode-sp25
+[submodule "library-su25"]
+	path = library-su25
+	url = https://github.com/cs61bl/library-su25
